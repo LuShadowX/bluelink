@@ -129,6 +129,8 @@ const TRACKING_PARAMS =
 function cleanUrl(raw, base) {
   const value = decodeEntities(String(raw ?? '')).trim()
   if (!value) return ''
+  // Backstop against a node reaching here and stringifying itself.
+  if (value.includes('[object')) return ''
   try {
     const url = new URL(value, base)
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
@@ -203,9 +205,23 @@ function parseDate(...candidates) {
 const BAD_IMAGE =
   /(1x1|pixel|spacer|blank|avatar|gravatar|feedburner|doubleclick|badge|button|icon[-_.]|logo[-_.]?\d*\.(png|gif))/i
 
+/**
+ * Hosts that answer with `Cross-Origin-Resource-Policy: same-origin`. The file
+ * is real and returns 200, but no browser will ever render it on another
+ * origin, so recording it as artwork only buys a guaranteed failed request and
+ * a console error. Better to report no image and let the fallback plate do its
+ * job deliberately.
+ */
+const UNEMBEDDABLE_IMAGE_HOSTS = new Set(['images.nintendolife.com'])
+
 function isUsableImage(url) {
   if (!url) return false
   if (BAD_IMAGE.test(url)) return false
+  try {
+    if (UNEMBEDDABLE_IMAGE_HOSTS.has(new URL(url).hostname.toLowerCase())) return false
+  } catch {
+    return false
+  }
   return (
     /\.(jpe?g|png|webp|avif|gif)(\?|$)/i.test(url) ||
     /\/(image|photo|media|thumb|resize|crop)/i.test(url)
@@ -215,8 +231,24 @@ function isUsableImage(url) {
 function pickImage(item, base) {
   const candidates = []
   const push = (value) => {
-    const url = cleanUrl(value, base)
-    if (url) candidates.push(url)
+    // Never hand a raw node to cleanUrl. Feeds ship <image> and <media:thumbnail>
+    // as elements with children, and stringifying one produces the literal
+    // "[object Object]", which then resolves against the feed base into a
+    // plausible-looking URL that can only ever 404.
+    const raw =
+      typeof value === 'string' || typeof value === 'number' ? String(value) : text(value)
+    if (!raw) return
+    const url = cleanUrl(raw, base)
+    if (!url) return
+    // Rejected here rather than in the final pick, because the last-resort
+    // branch below falls back to candidates[0] and would otherwise let a
+    // known-unembeddable URL through anyway.
+    try {
+      if (UNEMBEDDABLE_IMAGE_HOSTS.has(new URL(url).hostname.toLowerCase())) return
+    } catch {
+      return
+    }
+    candidates.push(url)
   }
 
   // media:content — prefer the widest declared variant.
