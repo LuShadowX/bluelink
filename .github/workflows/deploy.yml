@@ -30,6 +30,10 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Turn Pages on if it is not already, so a fresh clone or fork deploys
+          # without anyone visiting Settings first.
+          enablement: true
 
       - name: Set up Node
         uses: actions/setup-node@v4
