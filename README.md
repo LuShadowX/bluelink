@@ -79,8 +79,9 @@ scripts/
 src/
   config/             Topic definitions: labels, kickers, accent colours
   styles/             Design tokens and base stylesheet
-  lib/                Data loading, parsing and formatting helpers
-  components/         React components
+  lib/                Data loading, the six-hour refresh, routing, formatting
+  components/         Masthead, ticker, cards, reader, search
+  pages/              Front page, topic page, saved list
 public/
   data/               Generated JSON — one file per topic, plus index.json
 .github/
