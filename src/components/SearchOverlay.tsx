@@ -148,6 +148,11 @@ export function SearchOverlay({ articles, now, onClose, onOpen }: Props) {
       <div className="search__panel">
         <div className="search__field">
           <SearchIcon size={20} />
+          {/*
+            Combobox pattern: focus stays in the field so typing never breaks,
+            and the arrow keys move aria-activedescendant through the listbox
+            below instead of moving focus.
+          */}
           <input
             ref={inputRef}
             className="search__input"
@@ -155,6 +160,12 @@ export function SearchOverlay({ articles, now, onClose, onOpen }: Props) {
             value={query}
             placeholder="Search every story"
             aria-label="Search stories"
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls="search-results"
+            aria-activedescendant={
+              results.length > 0 ? `search-option-${cursor}` : undefined
+            }
             autoComplete="off"
             spellCheck={false}
             onChange={(event) => setQuery(event.target.value)}
@@ -169,7 +180,13 @@ export function SearchOverlay({ articles, now, onClose, onOpen }: Props) {
           </button>
         </div>
 
-        <div className="search__results" ref={listRef}>
+        <div
+          className="search__results"
+          id="search-results"
+          role="listbox"
+          aria-label="Search results"
+          ref={listRef}
+        >
           {terms.length === 0 ? (
             <p className="search__empty">
               Searching {articles.length} stories across technology, AI, sport, games and
@@ -183,11 +200,12 @@ export function SearchOverlay({ articles, now, onClose, onOpen }: Props) {
             results.map((article, i) => {
               const topic = getTopic(article.topic)
               return (
-                <button
-                  type="button"
+                <div
                   key={article.id}
+                  id={`search-option-${i}`}
                   data-row={i}
                   className="search__result"
+                  role="option"
                   aria-selected={i === cursor}
                   style={
                     {
@@ -213,7 +231,7 @@ export function SearchOverlay({ articles, now, onClose, onOpen }: Props) {
                   <span className="search__result-time">
                     {shortAgo(article.publishedAt, now)}
                   </span>
-                </button>
+                </div>
               )
             })
           )}

@@ -50,6 +50,14 @@ export function FrontPage({
 
   return (
     <div className="page shell">
+      {/* The masthead is a wordmark, and the lead story is a story, not the name
+          of the page — so the document's one h1 lives here, for screen readers
+          and search engines. */}
+      <h1 className="sr-only">
+        Pulse — today's news in technology, artificial intelligence, sport, games and
+        lifestyle
+      </h1>
+
       {lead && (
         <div className="front-top">
           <div className="front-top__lead">
