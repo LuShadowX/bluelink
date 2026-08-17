@@ -1,0 +1,24 @@
+<!--
+  Source of truth for every app icon. The PNGs in public/icons/ are rasterised
+  from this file; see the note in README under "Installing on a phone".
+
+  The mark is deliberately monochrome. A single paper-white pulse trace on ink
+  survives being shrunk to 48px on a home screen, where a coloured or detailed
+  icon turns to mush, and it matches the wordmark in the masthead.
+
+  The tall spike sits on the 256 centre line, with the trailing bump balancing
+  the longer flat lead-in — an ECG is asymmetric, but the mark still has to read
+  as centred inside a circular Android mask. Everything stays within a radius of
+  ~170 from centre, comfortably inside the 205 maskable safe zone.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#14120F" />
+  <path
+    d="M104 300h64l30-82 28 134 28-206 28 154h34l24-38 26 38h42"
+    fill="none"
+    stroke="#F7F5F0"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

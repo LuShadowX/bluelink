@@ -34,8 +34,12 @@ jobs:
 
       - name: Commit refreshed feeds
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Committed under the repository owner's identity on purpose. The
+          # usual github-actions[bot] identity would list a bot alongside the
+          # owner in the contributors panel for what is really the owner's own
+          # scheduled job.
+          git config user.name 'Shadow_Lu'
+          git config user.email 'xshadowlu13@gmail.com'
           git add public/data
           # In practice this commits on every run, because generatedAt is
           # restamped each time — and that is deliberate. The client treats

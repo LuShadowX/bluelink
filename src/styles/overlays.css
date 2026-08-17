@@ -45,7 +45,10 @@
   align-items: center;
   gap: var(--sp-4);
   height: 56px;
-  padding-inline: var(--shell-pad);
+  box-sizing: content-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: max(var(--shell-pad), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--shell-pad), env(safe-area-inset-right, 0px));
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
@@ -78,6 +81,7 @@
   max-width: 748px;
   margin-inline: auto;
   padding: var(--sp-8) var(--shell-pad) var(--sp-9);
+  padding-bottom: calc(var(--sp-9) + env(safe-area-inset-bottom, 0px));
 }
 
 .reader__kicker {
@@ -203,7 +207,8 @@
   background: color-mix(in srgb, var(--paper) 62%, transparent);
   backdrop-filter: blur(10px) saturate(130%);
   -webkit-backdrop-filter: blur(10px) saturate(130%);
-  padding: max(6vh, var(--sp-6)) var(--sp-4) var(--sp-6);
+  padding: max(6vh, calc(env(safe-area-inset-top, 0px) + var(--sp-4))) var(--sp-4)
+    calc(var(--sp-6) + env(safe-area-inset-bottom, 0px));
   animation: fade var(--dur-fast) var(--ease-out) both;
   overflow-y: auto;
 }

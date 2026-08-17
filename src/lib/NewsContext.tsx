@@ -37,6 +37,8 @@ interface NewsValue {
   /** Set when a newer issue exists but the reader has not accepted it yet. */
   freshIssueAt: string | null
   checkNow: () => void
+  /** Check and adopt in one gesture — used by pull-to-refresh. */
+  refreshNow: () => Promise<void>
   applyFreshIssue: () => void
   retry: () => void
 }
@@ -157,6 +159,33 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     }
   }, [checking, generatedAt])
 
+  /**
+   * Check and adopt in one step, for pull-to-refresh. The two-step "a newer
+   * edition is waiting" dance exists so the page never re-flows under someone
+   * mid-sentence — but a deliberate pull gesture *is* the reader asking for it,
+   * so holding the result back would just feel broken.
+   */
+  const refreshNow = useCallback(async () => {
+    const at = Date.now()
+    lastCheckedAt.current = at
+    setChecking(true)
+    try {
+      const payload = await loadIndex(at)
+      if (!generatedAt || payload.generatedAt !== generatedAt) {
+        const stamp = Date.parse(payload.generatedAt) || at
+        setIndex(payload)
+        setPending(null)
+        setArticlesByTopic({})
+        inflight.current.clear()
+        TOPIC_IDS.forEach((topic) => void fetchTopic(topic, stamp))
+      }
+    } catch {
+      // Offline. The gesture simply produces nothing new.
+    } finally {
+      setChecking(false)
+    }
+  }, [generatedAt, fetchTopic])
+
   const applyFreshIssue = useCallback(() => {
     if (!pending) return
     const at = Date.parse(pending.generatedAt) || Date.now()
@@ -243,6 +272,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       checking,
       freshIssueAt: pending?.generatedAt ?? null,
       checkNow: () => void checkNow(),
+      refreshNow,
       applyFreshIssue,
       retry,
     }),
@@ -259,6 +289,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       checking,
       pending,
       checkNow,
+      refreshNow,
       applyFreshIssue,
       retry,
     ]

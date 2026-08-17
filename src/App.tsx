@@ -4,6 +4,8 @@ import { getTopic } from './config/topics'
 import { NewsProvider, useNews } from './lib/NewsContext'
 import { useRoute } from './lib/useRoute'
 import { useSaved } from './lib/useSaved'
+import { usePullToRefresh } from './lib/usePullToRefresh'
+import { PullIndicator } from './components/PullIndicator'
 import { Masthead } from './components/Masthead'
 import { Ticker } from './components/Ticker'
 import { Footer } from './components/Footer'
@@ -27,12 +29,14 @@ function Pulse() {
     checking,
     freshIssueAt,
     checkNow,
+    refreshNow,
     applyFreshIssue,
     retry,
   } = useNews()
 
   const { route, navigate } = useRoute()
   const { saved, savedIds, toggle, clear } = useSaved()
+  const pull = usePullToRefresh(refreshNow)
 
   const [reading, setReading] = useState<Article | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -130,6 +134,8 @@ function Pulse() {
 
   return (
     <>
+      <PullIndicator {...pull} />
+
       <Masthead
         route={route}
         navigate={navigate}

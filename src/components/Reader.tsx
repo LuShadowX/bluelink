@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Article } from '../types'
 import { getTopic } from '../config/topics'
+import { openExternal } from '../lib/feed'
 import { accent } from '../lib/style'
 import { clockTime, fullDate, shortAgo } from '../lib/time'
 import { ArticleCard } from './ArticleCard'
@@ -173,6 +174,13 @@ export function Reader({
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey) return
+                // Inside a native shell target="_blank" would navigate the app's
+                // own WebView and leave no way back.
+                event.preventDefault()
+                openExternal(article.url)
+              }}
             >
               Read at {article.sourceHost || article.source}
               <ArrowUpRightIcon />

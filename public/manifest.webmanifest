@@ -1,0 +1,42 @@
+{
+  "name": "Pulse — Tech, AI, Sports, Games & Lifestyle",
+  "short_name": "Pulse",
+  "description": "An editorial news reader for technology, artificial intelligence, sport, games and lifestyle. Refreshes itself every six hours.",
+  "id": "/pulse-news/",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F7F5F0",
+  "theme_color": "#F7F5F0",
+  "categories": ["news", "magazines"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Tech", "url": "#/tech" },
+    { "name": "AI", "url": "#/ai" },
+    { "name": "Sports", "url": "#/sports" },
+    { "name": "Games", "url": "#/games" },
+    { "name": "Saved", "url": "#/saved" }
+  ]
+}

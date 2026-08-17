@@ -36,6 +36,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  /* Keeps the platform's own overscroll out of the way of pull-to-refresh, and
+     stops a scroll at the end of the page chaining out to the browser. */
+  overscroll-behavior-y: contain;
 }
 
 /* Grain sits above the background and below every pixel of content. */
@@ -123,11 +126,17 @@ input {
 
 /* ---- Shared primitives ------------------------------------------------ */
 
+/*
+ * Page gutter. The viewport is declared viewport-fit=cover so artwork can reach
+ * the edge of a notched screen, which means the gutter itself has to respect
+ * the inset or text slides under the rounded corners in landscape.
+ */
 .shell {
   width: 100%;
   max-width: var(--shell-max);
   margin-inline: auto;
-  padding-inline: var(--shell-pad);
+  padding-left: max(var(--shell-pad), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--shell-pad), env(safe-area-inset-right, 0px));
 }
 
 /* Small uppercase mono label. The workhorse of the whole layout: it carries

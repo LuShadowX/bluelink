@@ -30,8 +30,10 @@ down degrades a single section rather than breaking the app.
 News refreshes automatically every six hours, in three layers:
 
 1. **Scheduled fetch.** `.github/workflows/refresh-news.yml` runs on a `0 */6 * * *` cron, runs
-   the pipeline, and commits `public/data` back to the branch — but only when the output actually
-   changed, so the history stays free of empty commits.
+   the pipeline, and commits `public/data` back to the branch. In practice that is a commit every
+   run, because `generatedAt` is restamped each time — deliberately, since the client reads that
+   timestamp as the age of the edition and one that stopped advancing would leave every open tab
+   convinced it was stale and re-checking on a loop.
 2. **Automatic redeploy.** `.github/workflows/deploy.yml` listens for that workflow completing
    (`workflow_run`) as well as pushes to `main`, then rebuilds and republishes to GitHub Pages.
    The fresh JSON is live without anyone pressing a button.
@@ -41,6 +43,66 @@ News refreshes automatically every six hours, in three layers:
 
 For local development, `npm run news:watch` runs the same fetch immediately and then every six
 hours, logging the next scheduled run. Leave it in a second terminal beside `npm run dev`.
+
+## Installing on a phone
+
+Pulse is an installable web app. Open the live site at
+<https://lushadowx.github.io/pulse-news/> on the phone, then:
+
+- **Android (Chrome).** Use the menu's **Install app**, or **Add to Home screen** if that is
+  the wording offered.
+- **iOS (Safari).** Use **Share → Add to Home Screen**.
+
+Installed, Pulse launches without browser chrome, keeps its own icon on the home screen, and
+opens straight into the front page. It reads offline from the last edition it downloaded, and
+pulling down at the top of the page refreshes it.
+
+The install metadata lives in `public/manifest.webmanifest`: a standalone display mode,
+portrait-primary orientation, the paper-white `#F7F5F0` used for both the theme and the launch
+background, and shortcuts that jump directly to Tech, AI, Sports, Games and Saved.
+
+## Offline behaviour
+
+`public/sw.js` is a hand-written service worker — no build plugin and no Workbox — and it picks a
+caching strategy per resource type rather than applying one rule to everything.
+
+| Resource | Strategy | Why |
+| --- | --- | --- |
+| Navigation and `data/*.json` | Network-first | A fresh edition must always win over a cached one. Serving these from cache first would defeat the six-hour refresh. |
+| `assets/*` and icons | Cache-first | Vite content-hashes these filenames, so a given URL is immutable and can be served from cache without a check. |
+| Google Fonts, publisher images | Stale-while-revalidate | Shown immediately, updated in the background. The image cache is capped at 80 entries because cross-origin image responses are opaque and are padded when counted against the storage quota. |
+
+At install the worker reads `index.html` and extracts the build's own hashed script and
+stylesheet URLs so it can precache them. This step is necessary because on a first visit the
+page fetches those files before the worker has activated, so nothing intercepts them and nothing
+stores them. Without it the app would serve its HTML offline and then fail to boot, because the
+JavaScript beside it was never saved.
+
+One edition of news is precached at the same time, so the app is readable immediately after
+installing even if the network drops straight away.
+
+Publisher artwork is best-effort. Images are third-party and capped, so an offline story whose
+image was never cached falls back to the lettered plate the app uses elsewhere.
+
+## Icons and safe areas
+
+The icon PNGs in `public/icons/` (192, 512, maskable 512 and rounded 512) and
+`public/apple-touch-icon.png` are rasterised from `scripts/icon-source.svg`, which is the single
+source of truth. Edit the SVG, not the PNGs; regenerating them requires a headless-Chrome
+rasterisation step.
+
+The viewport is declared `viewport-fit=cover`, so the stylesheet applies `env(safe-area-inset-*)`
+to the masthead, page gutter, footer, reader bar and search overlay. Without those insets the
+sticky header slides under an iPhone notch.
+
+## Pull to refresh
+
+`src/lib/usePullToRefresh.ts` and `src/components/PullIndicator.tsx` add a pull-down gesture. It
+is active only on coarse-pointer devices, only at the very top of the page, and is disabled while
+the reader or search overlay holds the body scroll lock.
+
+Unlike the header pill, which offers a new edition and waits for a tap, a pull checks for a new
+edition and adopts it in the same gesture — a deliberate pull is the reader asking for it.
 
 ## Scripts
 
@@ -76,14 +138,20 @@ scripts/
   fetch-news.mjs      RSS pipeline: fetch, normalise, write public/data
   feeds.json          The 43 feeds, grouped by topic
   watch-news.mjs      Local 6-hour scheduler for development
+  icon-source.svg     Source of truth for every app icon
 src/
   config/             Topic definitions: labels, kickers, accent colours
   styles/             Design tokens and base stylesheet
-  lib/                Data loading, the six-hour refresh, routing, formatting
-  components/         Masthead, ticker, cards, reader, search
+  lib/                Data loading, the six-hour refresh, routing, formatting,
+                      pull-to-refresh, service worker registration
+  components/         Masthead, ticker, cards, reader, search, pull indicator
   pages/              Front page, topic page, saved list
 public/
   data/               Generated JSON — one file per topic, plus index.json
+  icons/              App icons rasterised from scripts/icon-source.svg
+  manifest.webmanifest  Web app manifest: name, display mode, shortcuts
+  sw.js               Service worker: precache and per-resource caching
+  apple-touch-icon.png  Home screen icon for iOS
 .github/
   workflows/          refresh-news.yml (cron fetch) and deploy.yml (Pages)
 ```
@@ -97,6 +165,19 @@ Pulse deploys to GitHub Pages from `.github/workflows/deploy.yml`. To enable it 
 clone, open **Settings → Pages** and set **Source** to **GitHub Actions**. No other
 configuration is needed — Vite's `base` is `'./'`, so the build works from a project subpath
 as well as a custom domain.
+
+## Packaging as a native app
+
+The native shell is not built yet. What follows is groundwork in `src/lib/feed.ts`, not a
+shipping app, and there is no APK or IPA.
+
+- **`VITE_DATA_ORIGIN`.** A native build must set this to the live site. Capacitor bundles the web
+  assets into the app, so a relative fetch would read the copy of `public/data/` frozen at build
+  time forever: the six-hour refresh would appear to run and silently change nothing. Pointing the
+  data origin at the deployed site keeps the payload live while the shell stays static.
+- **`openExternal()`.** Publisher links are routed through the Capacitor Browser plugin when it is
+  present, falling back to normal browser behaviour when it is not. Inside a WebView a plain
+  `target="_blank"` navigates the app's own view, which leaves the reader with no way back.
 
 ## Attribution
 
