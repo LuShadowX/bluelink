@@ -1,0 +1,55 @@
+{
+  "tech": [
+    { "name": "The Verge", "url": "https://www.theverge.com/rss/index.xml" },
+    { "name": "Ars Technica", "url": "https://arstechnica.com/feed/" },
+    { "name": "Engadget", "url": "https://www.engadget.com/rss.xml" },
+    { "name": "WIRED", "url": "https://www.wired.com/feed/rss" },
+    { "name": "BBC Technology", "url": "https://feeds.bbci.co.uk/news/technology/rss.xml" },
+    { "name": "CNET", "url": "https://www.cnet.com/rss/news/" },
+    { "name": "The Guardian", "url": "https://www.theguardian.com/technology/rss" },
+    { "name": "TechCrunch", "url": "https://techcrunch.com/feed/" },
+    { "name": "The New York Times", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml" }
+  ],
+  "ai": [
+    { "name": "VentureBeat", "url": "https://venturebeat.com/category/ai/feed/" },
+    { "name": "MIT Technology Review", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed" },
+    { "name": "WIRED", "url": "https://www.wired.com/feed/tag/ai/latest/rss" },
+    { "name": "AI Business", "url": "https://aibusiness.com/rss.xml" },
+    { "name": "Google DeepMind", "url": "https://deepmind.google/blog/rss.xml" },
+    { "name": "MIT News", "url": "https://news.mit.edu/rss/topic/artificial-intelligence2" },
+    { "name": "OpenAI", "url": "https://openai.com/news/rss.xml" },
+    { "name": "Machine Learning Mastery", "url": "https://machinelearningmastery.com/feed/" }
+  ],
+  "sports": [
+    { "name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml" },
+    { "name": "Sky Sports", "url": "https://www.skysports.com/rss/12040" },
+    { "name": "CBS Sports", "url": "https://www.cbssports.com/rss/headlines/" },
+    { "name": "The Guardian", "url": "https://www.theguardian.com/sport/rss" },
+    { "name": "Yahoo Sports", "url": "https://sports.yahoo.com/rss/" },
+    { "name": "FOX Sports", "url": "https://www.foxsports.com/feedout/syndicatedContent?categoryId=0" },
+    { "name": "Yardbarker", "url": "https://www.yardbarker.com/rss/rumors" }
+  ],
+  "games": [
+    { "name": "IGN", "url": "https://www.ign.com/rss/articles/feed" },
+    { "name": "Polygon", "url": "https://www.polygon.com/rss/index.xml" },
+    { "name": "Eurogamer", "url": "https://www.eurogamer.net/feed" },
+    { "name": "GameSpot", "url": "https://www.gamespot.com/feeds/news/" },
+    { "name": "PC Gamer", "url": "https://www.pcgamer.com/rss/" },
+    { "name": "Rock Paper Shotgun", "url": "https://www.rockpapershotgun.com/feed" },
+    { "name": "Nintendo Life", "url": "https://www.nintendolife.com/feeds/latest" },
+    { "name": "Game Developer", "url": "https://www.gamedeveloper.com/rss.xml" },
+    { "name": "Kotaku", "url": "https://kotaku.com/rss" }
+  ],
+  "lifestyle": [
+    { "name": "The Guardian", "url": "https://www.theguardian.com/lifeandstyle/rss" },
+    { "name": "Guardian Travel", "url": "https://www.theguardian.com/travel/rss" },
+    { "name": "Bon Appétit", "url": "https://www.bonappetit.com/feed/rss" },
+    { "name": "Condé Nast Traveler", "url": "https://www.cntraveler.com/feed/rss" },
+    { "name": "Vogue", "url": "https://www.vogue.com/feed/rss" },
+    { "name": "Apartment Therapy", "url": "https://www.apartmenttherapy.com/main.rss" },
+    { "name": "The Kitchn", "url": "https://www.thekitchn.com/main.rss" },
+    { "name": "Lifehacker", "url": "https://lifehacker.com/rss" },
+    { "name": "NYT Health", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml" },
+    { "name": "NYT Travel", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Travel.xml" }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "pulse-news",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pulse — an editorial news reader for tech, AI, sports, games and lifestyle.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "news": "node scripts/fetch-news.mjs",
+    "news:watch": "node scripts/watch-news.mjs",
+    "start": "npm run news && npm run dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "fast-xml-parser": "^5.11.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  }
+}

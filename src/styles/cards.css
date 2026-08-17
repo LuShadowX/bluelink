@@ -1,0 +1,362 @@
+/* ---------------------------------------------------------------------------
+ * Artwork
+ * ------------------------------------------------------------------------- */
+
+.story-image {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-sunken);
+  border-radius: var(--radius-md);
+  isolation: isolate;
+}
+
+.story-image__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.008);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.story-image__img--in {
+  opacity: 1;
+}
+
+/* A very slight warm multiply keeps stock press photography from clashing with
+   the paper ground — five publishers' colour grading in one grid otherwise
+   looks like five different websites. */
+.story-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(20, 18, 15, 0) 62%, rgba(20, 18, 15, 0.09));
+  mix-blend-mode: multiply;
+}
+
+.card__link:hover .story-image__img--in {
+  transform: scale(1.045);
+}
+
+/* Fallback well: the topic's initial set large in the display face. Reads as a
+   deliberate plate rather than a broken image. */
+.story-image__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(120% 120% at 30% 10%, var(--accent-wash), transparent 70%),
+    var(--paper-sunken);
+}
+
+.story-image__fallback span {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 12cqw, 5rem);
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.32;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Card shell
+ * ------------------------------------------------------------------------- */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.card__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.card__media {
+  position: relative;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.card__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  font-weight: 500;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.card__time,
+.card__source {
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.card__meta-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--rule-strong);
+  flex: none;
+}
+
+/* Freshly landed stories earn a small flag; everything else stays quiet. */
+.card__new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--paper-raised);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.card__title {
+  color: var(--ink);
+}
+
+.card__dek {
+  color: var(--ink-muted);
+  font-size: var(--step-small);
+  line-height: 1.55;
+  max-width: 60ch;
+}
+
+.card__byline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+  font-size: var(--step-meta);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---- Save control ---- */
+
+.card__save {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--paper-raised) 88%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--ink-soft);
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.card:hover .card__save,
+.card:focus-within .card__save,
+.card__save--on {
+  opacity: 1;
+  transform: none;
+}
+
+.card__save--on {
+  color: var(--accent);
+}
+
+.card__save:hover {
+  color: var(--ink);
+}
+
+/* Nothing to hover on a phone, so the control is simply always there. */
+@media (hover: none) {
+  .card__save {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Variants
+ * ------------------------------------------------------------------------- */
+
+/* Lead — one per page, carries the whole front page. The plate and headline are
+   sized together so that the summary and byline still clear a laptop fold; a
+   lead you have to scroll to finish reading is just a poster. */
+.card--lead .story-image {
+  aspect-ratio: 16 / 9;
+}
+
+.card--lead .card__title {
+  font-size: clamp(2.4rem, 4.1vw, 3.9rem);
+}
+
+.card--lead .card__dek {
+  font-size: var(--step-dek);
+  max-width: 56ch;
+  color: var(--ink-soft);
+}
+
+.card--lead .card__link {
+  gap: var(--sp-5);
+}
+
+/* Feature — the second tier. */
+.card--feature .story-image {
+  aspect-ratio: 4 / 3;
+}
+
+.card--feature .card__title {
+  font-size: var(--step-display-m);
+}
+
+/* Standard — the workhorse of the latest grid. */
+.card--standard .story-image {
+  aspect-ratio: 3 / 2;
+}
+
+.card--standard .card__title {
+  font-size: var(--step-display-s);
+}
+
+.card--standard .card__dek {
+  display: none;
+}
+
+/* Row — sidebar and search results. Text first, small plate on the right. */
+.card--row {
+  padding-block: var(--sp-4);
+  border-top: 1px solid var(--rule-hair);
+}
+
+.card--row:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.card--row .card__link {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  justify-content: space-between;
+}
+
+.card--row .card__media {
+  flex: none;
+  order: 2;
+  width: 82px;
+}
+
+.card--row .story-image {
+  aspect-ratio: 1;
+}
+
+.card--row .card__body {
+  gap: var(--sp-2);
+}
+
+.card--row .card__title {
+  font-size: 1.1875rem;
+}
+
+.card--row .card__dek {
+  display: none;
+}
+
+.card--row .card__save {
+  position: static;
+  order: 3;
+  width: 32px;
+  height: 32px;
+  background: none;
+  backdrop-filter: none;
+  margin-top: -3px;
+  margin-right: -6px;
+}
+
+/* An index numeral in the display face, for the ranked rail. */
+.card--row .card__index {
+  order: 0;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--rule-strong);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4em;
+}
+
+.card--row:hover .card__index {
+  color: var(--accent);
+}
+
+.card__index {
+  transition: color var(--dur-base) var(--ease-out);
+}
+
+/* Quote — an occasional textless card that breaks up a long image grid. */
+.card--statement {
+  justify-content: center;
+  padding: var(--sp-6) 0;
+}
+
+.card--statement .card__title {
+  font-size: var(--step-display-m);
+  font-style: italic;
+}
+
+@container (max-width: 240px) {
+  .card--standard .card__title {
+    font-size: 1.1875rem;
+  }
+}
+
+@media (max-width: 560px) {
+  /* On a phone the lead is the only story on the first screen, so it can keep
+     its scale — but the standard cards get their summaries back, because a
+     single column has the width for them. */
+  .card--standard .card__dek {
+    display: block;
+  }
+
+  .card--standard .story-image {
+    aspect-ratio: 16 / 9;
+  }
+}

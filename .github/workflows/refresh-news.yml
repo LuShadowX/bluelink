@@ -1,0 +1,51 @@
+name: Refresh news
+
+on:
+  schedule:
+    # Every 6 hours, matching refreshIntervalHours in public/data/index.json.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-news
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch feeds
+        run: npm run news
+
+      - name: Commit refreshed feeds
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data
+          # In practice this commits on every run, because generatedAt is
+          # restamped each time — and that is deliberate. The client treats
+          # generatedAt as the age of the edition, so a timestamp that stopped
+          # advancing would leave every open tab convinced it was stale and
+          # re-checking on a loop. The guard below is only a safety net for the
+          # case where the pipeline wrote nothing at all.
+          if git diff --cached --quiet -- public/data; then
+            echo 'Nothing was written to public/data; skipping commit.'
+            exit 0
+          fi
+          git commit -m 'chore(news): refresh feeds'
+          git push origin HEAD:"${GITHUB_REF_NAME}"
