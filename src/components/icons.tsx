@@ -112,3 +112,24 @@ export function PlayIcon({ size = 18, className }: IconProps) {
     </svg>
   )
 }
+
+/*
+ * Day and night. The two are drawn on the same 24-unit grid at the same optical
+ * weight, so the button does not appear to change size when the theme flips.
+ */
+export function SunIcon({ size = 17, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <circle cx="12" cy="12" r="4.4" />
+      <path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6" />
+    </svg>
+  )
+}
+
+export function MoonIcon({ size = 17, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2Z" />
+    </svg>
+  )
+}

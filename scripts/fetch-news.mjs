@@ -648,6 +648,7 @@ function normalizeItem(item, feed, topic) {
 
   const body = buildBody(htmlParagraphs(pickContentHtml(item)), summary)
   const points = buildPoints(summary, body, title)
+  const tags = buildTags(item, title, topic)
 
   const author = stripHtml(
     text(item['dc:creator']) || text(item.author?.name) || text(item.author) || ''
@@ -664,6 +665,7 @@ function normalizeItem(item, feed, topic) {
     summary,
     body,
     points,
+    tags,
     image,
     imageFrom: image ? 'feed' : null,
     imageCredit: null,
@@ -941,6 +943,90 @@ const STOPWORDS = new Set(
     'you we they he she i me him them us if because while during against between among').split(' ')
 )
 
+// --- Topics ----------------------------------------------------------------
+
+/*
+ * What a story is about, in two or three words.
+ *
+ * Taken from the feed's own <category> elements wherever they exist, because
+ * that is the publisher saying what they filed it under — a better answer than
+ * anything guessed from the prose. Where a feed ships none, the proper nouns in
+ * the headline stand in.
+ */
+
+/** Categories that say nothing: a section name, a site name, a CMS default. */
+const EMPTY_TAG =
+  /^(news|uncategorized|uncategorised|general|featured?|features|home|top ?stories|latest|article|blog|all|misc|other|updates?|rss|feed|main|posts?|content|editorial|summary|opinion|video|photos?|slideshow|free|paid|premium|exclusive|breaking)$/i
+
+/**
+ * Words that only restate the section. "Gaming" under Games and "Film" under
+ * Movies are not topics, they are the shelf the story is already on.
+ */
+const SECTION_SYNONYMS = {
+  tech: ['tech', 'technology', 'gadgets', 'computing'],
+  ai: ['ai', 'artificial intelligence', 'machine learning', 'ml'],
+  sports: ['sport', 'sports'],
+  games: ['games', 'gaming', 'game', 'video games', 'videogames'],
+  arena: ['mobile games', 'mobile gaming'],
+  movies: ['movies', 'movie', 'film', 'films', 'cinema'],
+  lifestyle: ['lifestyle', 'life and style', 'living'],
+  youtube: ['youtube'],
+}
+
+const TAG_MAX = 4
+const TAG_MAX_CHARS = 26
+
+/** Title Case, but leaving acronyms and hyphenated names alone. */
+function titleCaseTag(value) {
+  return value
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length <= 1) return word.toUpperCase()
+      // Already shouting, or a mixed-case brand: leave it.
+      if (word === word.toUpperCase() || /[a-z][A-Z]/.test(word)) return word
+      return word[0].toUpperCase() + word.slice(1)
+    })
+    .join(' ')
+}
+
+function buildTags(item, title, topic) {
+  const raw = []
+  for (const node of Array.isArray(item.category) ? item.category : [item.category]) {
+    if (node == null) continue
+    // Atom puts it in an attribute; RSS in the text.
+    const value = typeof node === 'object' ? (node['@_term'] ?? node['@_label'] ?? text(node)) : node
+    const cleaned = stripHtml(String(value ?? ''))
+      .replace(/\s*[|/>·»]\s*/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (!cleaned) continue
+    for (const part of cleaned.split(/\s*,\s*/)) raw.push(part.trim())
+  }
+
+  const seen = new Set([topic.toLowerCase(), ...(SECTION_SYNONYMS[topic] ?? [])])
+  const tags = []
+  for (const candidate of raw) {
+    if (candidate.length < 3 || candidate.length > TAG_MAX_CHARS) continue
+    if (EMPTY_TAG.test(candidate)) continue
+    // A slug, an id, or a URL fragment rather than a subject.
+    if (!/^[\w&'’.\- ]+$/u.test(candidate)) continue
+    if (/^\d+$/.test(candidate)) continue
+    const key = candidate.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    tags.push(titleCaseTag(candidate))
+    if (tags.length >= TAG_MAX) break
+  }
+
+  /*
+   * No fallback. An earlier version filled the gap with the capitalised words
+   * from the headline and produced "Watch, Daily, Schedule" — three words that
+   * describe nothing. Where a publisher files nothing, the reader shows the
+   * section alone, which is at least true.
+   */
+  return tags
+}
+
 // --- The short version -----------------------------------------------------
 
 /*
@@ -1212,6 +1298,7 @@ function normalizeVideo(entry, creator) {
     summary,
     body: summary ? paragraphs.slice(1, BODY_MAX_PARAGRAPHS) : paragraphs.slice(0, BODY_MAX_PARAGRAPHS),
     points: buildPoints(summary, paragraphs, title),
+    tags: buildTags(entry, title, creator.topic),
     // Upgraded to the 16:9 master in bestThumbnail once the run knows it exists.
     image: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
     imageFrom: 'video',

@@ -47,8 +47,8 @@
   font-family: var(--font-poster);
   font-size: clamp(2.4rem, 14cqw, 6rem);
   line-height: 1;
-  color: var(--ink-inverse);
-  -webkit-text-stroke: 2px var(--ink);
+  color: var(--on-accent);
+  -webkit-text-stroke: 2px var(--ink-fixed);
   paint-order: stroke fill;
   user-select: none;
 }
@@ -124,7 +124,7 @@
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 500;
@@ -159,7 +159,7 @@
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
@@ -211,7 +211,7 @@
   border: var(--line) solid var(--ink);
   border-radius: 50%;
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   box-shadow: var(--lift-sm);
   transition:
     transform var(--dur-fast) var(--ease-snap),
@@ -220,7 +220,7 @@
 
 .card__link:hover .card__play {
   transform: translate(-50%, -50%) scale(1.12);
-  background: var(--ink);
+  background: var(--fill-ink);
 }
 
 .card--row .card__play,
@@ -250,8 +250,8 @@
   padding: 2px 6px;
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--ink-inverse);
+  background: var(--fill-ink);
+  color: var(--fill-ink-text);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 500;
@@ -264,7 +264,7 @@
 
 .card__views {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   flex: none;
 }
 
@@ -302,12 +302,12 @@
 
 .card__save--on {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
 }
 
 .card__save:hover {
-  background: var(--ink);
-  color: var(--ink-inverse);
+  background: var(--fill-ink);
+  color: var(--fill-ink-text);
 }
 
 /* Nothing to hover on a phone, so the control is simply always there. */
@@ -332,7 +332,7 @@
   background-color: var(--accent);
   background-image: var(--halftone);
   background-size: 13px 13px;
-  color: var(--ink-inverse);
+  color: var(--on-accent);
 }
 
 .card--lead .card__link {
@@ -360,7 +360,7 @@
 
 .card--lead .card__title {
   font-size: clamp(1.9rem, 3.4vw, 3.1rem);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   text-shadow: 3px 3px 0 rgba(13, 13, 20, 0.55);
 }
 
@@ -372,7 +372,7 @@
 
 .card--lead .card__kicker {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
 }
 
 .card--lead .card__time,

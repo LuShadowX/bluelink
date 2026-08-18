@@ -113,8 +113,8 @@
 
 /* The current section is a filled, inked, lifted chip in its own colour. */
 .nav__link[aria-current='page'] {
-  color: var(--ink-inverse);
-  background: var(--nav-accent, var(--ink));
+  color: var(--on-accent);
+  background: var(--nav-accent, var(--fill-ink));
   border-color: var(--ink);
   box-shadow: var(--lift-xs);
   transform: translate(-1px, -1px);
@@ -169,13 +169,13 @@
 /* When a newer issue is waiting the readout becomes the button that loads it. */
 .freshness--fresh {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   cursor: pointer;
   box-shadow: var(--lift-xs);
 }
 
 .freshness--fresh .freshness__dot {
-  background: var(--ink);
+  background: var(--on-pop);
   animation: pulse-dot 1.2s var(--ease-in-out) infinite;
 }
 
@@ -201,19 +201,19 @@
 }
 
 .icon-button:hover {
-  color: var(--ink-inverse);
-  background: var(--ink);
+  color: var(--fill-ink-text);
+  background: var(--fill-ink);
   border-color: var(--ink);
 }
 
 .icon-button--on {
-  color: var(--ink);
+  color: var(--on-pop);
   background: var(--pop);
   border-color: var(--ink);
 }
 
 .icon-button--on:hover {
-  color: var(--ink);
+  color: var(--on-pop);
   background: var(--pop);
 }
 
@@ -229,7 +229,7 @@
   border: 1px solid var(--ink);
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 500;
@@ -292,7 +292,7 @@
 
 .pull--armed {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
 }
 
 .pull--busy {
@@ -313,7 +313,7 @@
 }
 
 .pull--armed .pull__dot {
-  background: var(--ink);
+  background: var(--on-pop);
 }
 
 .pull--busy .pull__dot {
@@ -333,7 +333,7 @@
   overflow: hidden;
   width: min(var(--shell-max), calc(100% - var(--shell-pad) * 2));
   margin: var(--sp-2) auto var(--sp-5);
-  background: var(--ink);
+  background: var(--fill-ink);
   border: var(--line) solid var(--ink);
   border-radius: var(--radius-pill);
   box-shadow: var(--lift-sm);
@@ -347,7 +347,7 @@
   align-items: center;
   padding: 0 var(--sp-4);
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   border-right: var(--line) solid var(--ink);
   border-radius: var(--radius-pill) 0 0 var(--radius-pill);
   font-family: var(--font-mono);
@@ -397,13 +397,13 @@
   gap: var(--sp-3);
   padding: 0 var(--sp-4);
   font-size: var(--step-small);
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--fill-ink-muted);
   white-space: nowrap;
   transition: color var(--dur-fast) var(--ease-out);
 }
 
 .ticker__item:hover {
-  color: var(--ink-inverse);
+  color: var(--fill-ink-text);
 }
 
 .ticker__item::after {
@@ -412,7 +412,7 @@
   height: 4px;
   margin-left: var(--sp-3);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--fill-ink-muted);
 }
 
 .ticker__topic {
@@ -458,13 +458,13 @@
   background-color: var(--accent);
   background-image: var(--halftone);
   background-size: 13px 13px;
-  color: var(--ink-inverse);
+  color: var(--on-accent);
 }
 
 .topic-intro__title {
   font-size: var(--step-display-l);
   text-transform: uppercase;
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   text-shadow: 3px 3px 0 rgba(13, 13, 20, 0.5);
 }
 
@@ -508,8 +508,8 @@
   padding: 5px 11px;
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--ink-inverse);
+  background: var(--fill-ink);
+  color: var(--fill-ink-text);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 700;
@@ -523,7 +523,7 @@
   min-width: 24px;
   height: var(--line);
   background: var(--ink);
-  opacity: 0.18;
+  opacity: 0.22;
 }
 
 .section-rule__note {
@@ -706,7 +706,7 @@
   border: var(--line) solid var(--ink);
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 700;
@@ -775,8 +775,8 @@
   /* Clear the home indicator on a gesture-navigation phone. */
   padding: var(--sp-6) 0 calc(var(--sp-7) + env(safe-area-inset-bottom, 0px));
   margin-top: auto;
-  background: var(--ink);
-  color: var(--ink-inverse);
+  background: var(--fill-ink);
+  color: var(--fill-ink-text);
 }
 
 .footer__grid {
@@ -789,13 +789,13 @@
 
 /* .meta is tuned for dark-on-white; on the inked footer it needs inverting. */
 .footer .meta {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--fill-ink-muted);
 }
 
 .footer__note {
   max-width: 42ch;
   font-size: var(--step-small);
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--fill-ink-muted);
 }
 
 .footer__links {
@@ -809,7 +809,7 @@
   font-size: var(--step-meta);
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--fill-ink-muted);
   /* Small type still needs a thumb-sized target. */
   padding-block: 10px;
   transition: color var(--dur-fast) var(--ease-out);
@@ -876,5 +876,190 @@
   .masthead__bar {
     gap: var(--sp-2);
     padding-inline: var(--sp-2);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * The yin-yang menu
+ *
+ * The symbol is drawn from two fills — a circle and the dark half over it — so
+ * a single swap of those two custom properties inverts the whole thing. Opening
+ * the menu turns the button half a revolution and performs that swap on the way
+ * round, which is the entire animation: no crossfade, no second copy of the art.
+ *
+ * The halves are the page's own ink and panel colours rather than literal black
+ * and white, so the symbol inverts along with the theme and always sits in the
+ * bar as though it were drawn there.
+ * ------------------------------------------------------------------------- */
+
+.yy {
+  position: relative;
+  flex: none;
+}
+
+.yy__button {
+  --yy-a: var(--panel);
+  --yy-b: var(--ink);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  transition:
+    transform 520ms var(--ease-snap),
+    filter var(--dur-fast) var(--ease-out);
+}
+
+.yy__button:hover {
+  filter: drop-shadow(2px 2px 0 var(--shadow));
+}
+
+.yy__button--open {
+  --yy-a: var(--ink);
+  --yy-b: var(--panel);
+  transform: rotate(180deg);
+}
+
+.yinyang {
+  width: 30px;
+  height: 30px;
+  display: block;
+  overflow: visible;
+}
+
+.yinyang__field {
+  fill: var(--yy-a);
+}
+
+.yinyang__half {
+  fill: var(--yy-b);
+}
+
+/* The top lobe belongs to the light half, so its eye is the dark one. */
+.yinyang__eye--top {
+  fill: var(--yy-b);
+}
+
+.yinyang__eye--bottom {
+  fill: var(--yy-a);
+}
+
+.yinyang__ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3.4;
+}
+
+.yy__panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 80;
+  width: min(310px, calc(100vw - var(--sp-5)));
+  padding: var(--sp-4);
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift);
+  animation: rise var(--dur-base) var(--ease-out) both;
+}
+
+.yy__title {
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: var(--line) solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.yy__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 9px 10px;
+  border: var(--line-hair) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.yy__item:hover,
+.yy__item:focus-visible {
+  background: var(--accent-wash);
+  border-color: var(--ink);
+  transform: translateX(2px);
+}
+
+.yy__item svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.yy__item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.yy__item-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+}
+
+.yy__item-note {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Day and night ---- */
+
+/* The icon is replaced rather than transformed, so it arrives with a small turn
+   of its own instead of appearing from nowhere. */
+.icon-button--theme svg {
+  animation: theme-turn 420ms var(--ease-snap) both;
+}
+
+@keyframes theme-turn {
+  from {
+    transform: rotate(-90deg) scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Today carries no section colour, so its active chip takes the inked fill. */
+.nav__link--home[aria-current='page'] {
+  background: var(--fill-ink);
+}
+
+/* Four controls plus a readout do not fit a phone, so the freshness pill drops
+   to its dot. The button keeps its aria-label, so nothing is lost to a reader
+   who cannot see the colour. */
+@media (max-width: 720px) {
+  .freshness__label {
+    display: none;
+  }
+
+  .freshness {
+    padding: 7px;
   }
 }

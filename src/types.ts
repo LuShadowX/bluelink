@@ -20,6 +20,11 @@ export interface Article {
    * picked for how much they carry. This is what the reader shows.
    */
   points: string[]
+  /**
+   * What the story is about, as the publisher filed it — its own <category>
+   * entries, cleaned. Empty when a feed ships none; nothing is guessed.
+   */
+  tags: string[]
   image: string | null
   imageFrom: ImageOrigin | null
   /** Set only for `related` artwork, which is not the publisher's own. */

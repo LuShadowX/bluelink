@@ -3,6 +3,7 @@ import type { Article } from './types'
 import { getTopic } from './config/topics'
 import { NewsProvider, useNews } from './lib/NewsContext'
 import { useRoute } from './lib/useRoute'
+import { useTheme } from './lib/useTheme'
 import { useSaved } from './lib/useSaved'
 import { usePullToRefresh } from './lib/usePullToRefresh'
 import { PullIndicator } from './components/PullIndicator'
@@ -37,6 +38,7 @@ function BlueLink() {
   } = useNews()
 
   const { route, navigate } = useRoute()
+  const { theme, toggle: toggleTheme } = useTheme()
   const { saved, savedIds, toggle, clear } = useSaved()
   const pull = usePullToRefresh(refreshNow)
 
@@ -156,6 +158,8 @@ function BlueLink() {
         freshIssueAt={freshIssueAt}
         onApplyFresh={applyFreshIssue}
         onCheck={checkNow}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <Ticker articles={highlights} onOpen={openArticle} />

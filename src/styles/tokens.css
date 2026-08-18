@@ -43,24 +43,49 @@
   --rule-strong: rgba(13, 13, 20, 0.34);
   --rule-hair: rgba(13, 13, 20, 0.09);
 
-  /* ---- Brand ----------------------------------------------------------- */
-  --brand: #1554ed;
+  /* ---- Brand -----------------------------------------------------------
+     Sea blue, matching the emblem. The logo and the interface should agree
+     rather than merely coordinate. */
+  --brand: #0e9ec2;
 
   /* ---- Accent (rebound per section at runtime) ------------------------- */
   --accent: var(--brand);
-  --accent-deep: #0b2f8a;
-  --accent-wash: rgba(21, 84, 237, 0.1);
+  --accent-deep: #06657f;
+  --accent-wash: rgba(14, 158, 194, 0.12);
   /* The one colour that is not sectional: comic yellow, for the flashes and
      highlights that have to read the same everywhere. */
   --pop: #ffd400;
 
+  /* ---- Roles ----------------------------------------------------------
+     These exist because "ink" was doing two jobs — the colour of type and the
+     colour of a filled surface — and those two have to move in opposite
+     directions when the theme flips. Naming the roles is what makes a dark
+     theme a palette swap instead of a rewrite.
+
+     --fill-ink       background of a deliberately dark surface (ticker, footer,
+                      section label). Stays dark in both themes.
+     --on-accent      type on a saturated accent fill. White in both themes,
+                      because the accents stay dark enough to carry it.
+     --on-pop         type on the yellow flash. Always near-black — yellow never
+                      carries white type in either theme.
+     --ink-fixed      ink that sits on top of colour (halftone, outlines on an
+                      accent fill) and so must not invert.
+     --shadow         the offset shadow colour. */
+  --fill-ink: #0d0d14;
+  --fill-ink-text: #ffffff;
+  --fill-ink-muted: rgba(255, 255, 255, 0.68);
+  --on-accent: #ffffff;
+  --on-pop: #0d0d14;
+  --ink-fixed: #0d0d14;
+  --shadow: var(--ink);
+
   /* ---- Ink shadows ----------------------------------------------------
      Hard offsets, never blurred. A blurred shadow is a photograph of a card;
      an offset one is drawn, which is the whole idea. */
-  --lift-xs: 2px 2px 0 var(--ink);
-  --lift-sm: 3px 3px 0 var(--ink);
-  --lift: 5px 5px 0 var(--ink);
-  --lift-lg: 9px 9px 0 var(--ink);
+  --lift-xs: 2px 2px 0 var(--shadow);
+  --lift-sm: 3px 3px 0 var(--shadow);
+  --lift: 5px 5px 0 var(--shadow);
+  --lift-lg: 9px 9px 0 var(--shadow);
   --lift-accent: 5px 5px 0 var(--accent);
 
   /* ---- Type ------------------------------------------------------------ */
@@ -140,4 +165,58 @@
 
   /* The same mark in graphite and larger, for the second, slower pass. */
   --xtile-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='620' height='620' viewBox='0 0 620 620'%3E%3Cg fill='none' stroke='%230d0d14' stroke-width='1.6'%3E%3Cpath d='M96 60 L524 548 L488 578 L60 90 Z'/%3E%3Cpath d='M524 60 L96 548 L60 518 L488 30 Z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------------------
+ * Night
+ *
+ * Not an inversion: a comic printed on dark stock. The page goes to near-black,
+ * panels to a raised charcoal, and the ink — which draws both the type and every
+ * outline — goes light. The offset shadows flip to true black, because a light
+ * shadow on a dark ground reads as a glow rather than as depth.
+ *
+ * The accents are untouched. They were picked to carry white type on white
+ * stock, which means they are dark enough to sit on charcoal too, and keeping
+ * them fixed is what stops the two themes from looking like two apps.
+ * ------------------------------------------------------------------------- */
+
+:root[data-theme='dark'] {
+  --page: #0a0b10;
+  --panel: #15171f;
+  --panel-sunken: #1c1f28;
+  --panel-deep: #262a35;
+
+  --ink: #eef1f7;
+  --ink-soft: #c9d0dc;
+  --ink-muted: #98a1b1;
+  --ink-faint: #6d7684;
+  --ink-inverse: #0a0b10;
+
+  --rule: rgba(238, 241, 247, 0.16);
+  --rule-strong: rgba(238, 241, 247, 0.34);
+  --rule-hair: rgba(238, 241, 247, 0.1);
+
+  /* A charcoal fill rather than the light ink, so an "inked" strip still reads
+     as the darkest thing on the page. */
+  --fill-ink: #20242e;
+  --fill-ink-text: #eef1f7;
+  --fill-ink-muted: rgba(238, 241, 247, 0.62);
+
+  /* Depth is drawn in true black on dark stock. */
+  --shadow: #000000;
+}
+
+/* Red hairlines are far louder on black than on white, so the field is dialled
+   back rather than left to glare. */
+:root[data-theme='dark'] .xfield__grid--red {
+  opacity: 0.3;
+}
+
+:root[data-theme='dark'] .xfield__grid--ink {
+  /* The graphite pass is invisible on charcoal; the mark carries it instead. */
+  opacity: 0.16;
+}
+
+:root[data-theme='dark'] .xfield__mark {
+  opacity: 0.1;
 }

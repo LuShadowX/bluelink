@@ -227,7 +227,7 @@ input {
 
 ::selection {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
 }
 
 /* ---- Shared primitives ------------------------------------------------ */
@@ -281,7 +281,7 @@ input {
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 500;
@@ -291,13 +291,13 @@ input {
 }
 
 .tag--ink {
-  background: var(--ink);
-  color: var(--ink-inverse);
+  background: var(--fill-ink);
+  color: var(--fill-ink-text);
 }
 
 .tag--pop {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
 }
 
 .tag--quiet {

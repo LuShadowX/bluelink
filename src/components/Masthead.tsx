@@ -1,7 +1,9 @@
 import { TOPICS, getTopic } from '../config/topics'
 import type { Route } from '../lib/useRoute'
 import { shortAgo } from '../lib/time'
-import { BookmarkIcon, SearchIcon } from './icons'
+import { BookmarkIcon, MoonIcon, SearchIcon, SunIcon } from './icons'
+import { YinYangMenu } from './YinYangMenu'
+import type { Theme } from '../lib/useTheme'
 
 interface Props {
   route: Route
@@ -15,6 +17,8 @@ interface Props {
   freshIssueAt: string | null
   onApplyFresh: () => void
   onCheck: () => void
+  theme: Theme
+  onToggleTheme: () => void
 }
 
 export function Masthead({
@@ -29,6 +33,8 @@ export function Masthead({
   freshIssueAt,
   onApplyFresh,
   onCheck,
+  theme,
+  onToggleTheme,
 }: Props) {
   const activeTopic = route.view === 'topic' ? getTopic(route.topic) : null
 
@@ -51,7 +57,7 @@ export function Masthead({
   const links = (className: string) => (
     <>
       <a
-        className={className}
+        className={`${className} ${className}--home`}
         href="#/"
         aria-current={route.view === 'home' ? 'page' : undefined}
         onClick={(event) => {
@@ -105,10 +111,23 @@ export function Masthead({
         </nav>
 
         <div className="masthead__tools">
+          <YinYangMenu />
+
+          <button
+            type="button"
+            className="icon-button icon-button--theme"
+            onClick={onToggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to day' : 'Switch to night'}
+            title={theme === 'dark' ? 'Day' : 'Night'}
+          >
+            {theme === 'dark' ? <MoonIcon /> : <SunIcon />}
+          </button>
+
           <button
             type="button"
             className={`freshness freshness--${freshnessState}`}
             onClick={freshIssueAt ? onApplyFresh : onCheck}
+            aria-label={freshnessLabel}
             title={
               freshIssueAt
                 ? 'A newer edition is ready — load it'
@@ -116,7 +135,7 @@ export function Masthead({
             }
           >
             <span className="freshness__dot" aria-hidden="true" />
-            <span>{freshnessLabel}</span>
+            <span className="freshness__label">{freshnessLabel}</span>
           </button>
 
           <button

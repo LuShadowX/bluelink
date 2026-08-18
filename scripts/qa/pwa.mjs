@@ -57,8 +57,19 @@ console.log('\n1. Installability')
 
   const appleIcon = await p.getAttribute('link[rel="apple-touch-icon"]', 'href')
   ok('apple-touch-icon present (iOS home screen)', !!appleIcon)
-  const themeColor = await p.getAttribute('meta[name="theme-color"]', 'content')
-  ok('theme-color set', themeColor === '#FFFFFF', themeColor ?? '')
+  /*
+   * The app rewrites theme-color to match the active theme, so this checks that
+   * it agrees with the theme rather than pinning one literal value — the browser
+   * chrome not matching the page is the actual defect.
+   */
+  const themeColor = (await p.getAttribute('meta[name="theme-color"]', 'content')) ?? ''
+  const theme = await p.evaluate(() => document.documentElement.dataset.theme)
+  const expected = theme === 'dark' ? '#0a0b10' : '#ffffff'
+  ok(
+    'theme-color matches the theme',
+    themeColor.toLowerCase() === expected,
+    `${theme} / ${themeColor}`
+  )
   await ctx.close()
 }
 

@@ -31,6 +31,30 @@
     />
   </head>
   <body>
+    <!--
+      Decide the theme before the first paint. React cannot do this: by the time
+      it mounts, a dark-mode reader has already been shown a white page. Kept
+      inline and tiny for the same reason — an external file would be one round
+      trip too late.
+    -->
+    <script>
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('bluelink:theme')
+          var dark =
+            stored === 'dark' ||
+            (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+          if (dark) {
+            document
+              .querySelector('meta[name="theme-color"]')
+              .setAttribute('content', '#0a0b10')
+          }
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light'
+        }
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

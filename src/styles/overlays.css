@@ -125,7 +125,7 @@
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 700;
@@ -175,7 +175,7 @@
   border: 1px solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   font-weight: 700;
   letter-spacing: 0.1em;
 }
@@ -223,7 +223,7 @@
   border-radius: var(--radius-md);
   box-shadow: var(--lift-sm);
   overflow: hidden;
-  background: var(--ink);
+  background: var(--fill-ink);
 }
 
 .reader__embed iframe,
@@ -252,7 +252,7 @@
   border: var(--line) solid var(--ink);
   border-radius: 50%;
   background: var(--accent);
-  color: var(--ink-inverse);
+  color: var(--on-accent);
   box-shadow: var(--lift-sm);
   transition: transform var(--dur-fast) var(--ease-snap);
 }
@@ -312,7 +312,7 @@
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 700;
@@ -529,7 +529,7 @@
 
 .search__result-title mark {
   background: var(--pop);
-  color: var(--ink);
+  color: var(--on-pop);
   border-radius: 2px;
   padding: 0 2px;
 }
@@ -615,4 +615,39 @@ kbd {
   .reader__lede {
     font-size: 1.125rem;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Topics
+ *
+ * Sits between the byline and the artwork, so a reader knows what they are
+ * about to read about before committing to it. The first chip is the section,
+ * filled in its colour; the rest are the subjects the publisher filed the story
+ * under, drawn as outlines so they read as labels rather than buttons.
+ * ------------------------------------------------------------------------- */
+
+.reader__topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--sp-4);
+}
+
+.reader__topic {
+  padding: 3px 9px;
+  border: var(--line-hair) solid var(--rule-strong);
+  border-radius: var(--radius-pill);
+  background: var(--accent-wash);
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.reader__topic--section {
+  border-color: var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
 }

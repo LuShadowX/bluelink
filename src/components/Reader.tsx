@@ -287,6 +287,22 @@ export function Reader({
           </div>
 
           {/*
+            What this story is about, before a word of it is read: the section it
+            belongs to, then the subjects the publisher filed it under.
+          */}
+          <ul className="reader__topics" aria-label="Topics">
+            <li className="reader__topic reader__topic--section">{topic.kicker}</li>
+            {article.kind === 'video' && article.channel && (
+              <li className="reader__topic">{article.channel}</li>
+            )}
+            {article.tags.map((tag) => (
+              <li key={tag} className="reader__topic">
+                {tag}
+              </li>
+            ))}
+          </ul>
+
+          {/*
             A video plays here rather than throwing the reader out to YouTube —
             but the iframe is only created once the plate is tapped, so opening a
             story never quietly loads a third-party player.
