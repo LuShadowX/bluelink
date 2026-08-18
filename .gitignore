@@ -18,3 +18,6 @@ coverage
 # Fetched feed payloads are committed on purpose (the cron job updates them),
 # but the raw scratch cache is not.
 /.news-cache
+
+# QA screenshots
+.qa-output
