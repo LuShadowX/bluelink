@@ -1,9 +1,9 @@
 /*
- * Pulse service worker.
+ * BlueLink service worker.
  *
  * Written by hand rather than generated, because the caching rules here are
  * specific enough that a default precache-everything strategy would fight the
- * app: the whole point of Pulse is that an edition is replaced every six hours,
+ * app: the whole point of BlueLink is that an edition is replaced every six hours,
  * so the JSON must never be served from cache while the network is reachable.
  *
  * Strategy per resource, and why:
@@ -16,7 +16,7 @@
  *                                    never allowed to eat unbounded storage
  */
 
-const VERSION = 'pulse-v2'
+const VERSION = 'bluelink-v1'
 const SHELL_CACHE = `${VERSION}-shell`
 const DATA_CACHE = `${VERSION}-data`
 const IMAGE_CACHE = `${VERSION}-images`
@@ -29,7 +29,8 @@ const PRECACHE = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './favicon.svg',
+  './favicon-64.png',
+  './mark.png',
   './apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -143,7 +144,8 @@ const isData = (url) => url.pathname.includes('/data/') && url.pathname.endsWith
 const isImmutableAsset = (url) => url.pathname.includes('/assets/')
 const isIcon = (url) =>
   url.pathname.includes('/icons/') ||
-  url.pathname.endsWith('favicon.svg') ||
+  url.pathname.endsWith('favicon-64.png') ||
+  url.pathname.endsWith('mark.png') ||
   url.pathname.endsWith('apple-touch-icon.png') ||
   url.pathname.endsWith('manifest.webmanifest')
 
@@ -225,7 +227,7 @@ self.addEventListener('fetch', (event) => {
           return (
             (await caches.match(new URL('index.html', self.registration.scope).toString())) ??
             (await caches.match(self.registration.scope)) ??
-            new Response('Pulse is offline.', {
+            new Response('BlueLink is offline.', {
               status: 503,
               headers: { 'Content-Type': 'text/plain' },
             })

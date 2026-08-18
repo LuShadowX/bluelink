@@ -54,7 +54,7 @@ export function FrontPage({
           of the page — so the document's one h1 lives here, for screen readers
           and search engines. */}
       <h1 className="sr-only">
-        Pulse — today's news in technology, artificial intelligence, sport, games and
+        BlueLink — today's news in technology, artificial intelligence, sport, games and
         lifestyle
       </h1>
 

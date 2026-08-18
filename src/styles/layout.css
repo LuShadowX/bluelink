@@ -22,28 +22,31 @@
   height: var(--header-h);
 }
 
+/* The mark is angular and technical, so the name is set in the text face rather
+   than the editorial serif — a serif beside it reads as two unrelated brands.
+   The serif stays where it belongs, on the headlines. */
 .wordmark {
   display: flex;
-  align-items: baseline;
-  gap: 5px;
+  align-items: center;
+  gap: 9px;
   flex: none;
   padding-block: 7px;
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  line-height: 1;
-  letter-spacing: -0.03em;
   color: var(--ink);
 }
 
-/* The live dot is the only always-moving element in the interface — it reads
-   as a wire feed rather than decoration. */
-.wordmark__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-bottom: 3px;
-  animation: pulse-dot 2.6s var(--ease-in-out) infinite;
+.wordmark__mark {
+  height: 26px;
+  width: auto;
+  flex: none;
+  display: block;
+}
+
+.wordmark__name {
+  font-family: var(--font-text);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.022em;
 }
 
 @keyframes pulse-dot {

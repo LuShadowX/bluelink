@@ -15,7 +15,8 @@ interface Props {
   index?: number
   saved: boolean
   now: number
-  onOpen: (article: Article) => void
+  /** The second argument is the artwork the reader panel should grow out of. */
+  onOpen: (article: Article, origin?: HTMLElement | null) => void
   onToggleSave: (article: Article) => void
   /** Off on topic pages, where naming the section on every card is noise. */
   showKicker?: boolean
@@ -55,7 +56,9 @@ export function ArticleCard({
       return
     }
     event.preventDefault()
-    onOpen(article)
+    // Hand over this card's artwork so the panel can expand from it and, on
+    // close, settle back onto the exact tile the reader came from.
+    onOpen(article, event.currentTarget.querySelector<HTMLElement>('.story-image'))
   }
 
   return (

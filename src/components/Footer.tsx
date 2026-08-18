@@ -15,10 +15,10 @@ export function Footer({ navigate, generatedAt, totalArticles, sourceCount }: Pr
       <div className="shell footer__grid">
         <div>
           <p className="meta" style={{ marginBottom: 'var(--sp-3)' }}>
-            Pulse — {totalArticles} stories from {sourceCount} publishers
+            BlueLink — {totalArticles} stories from {sourceCount} publishers
           </p>
           <p className="footer__note">
-            Pulse gathers headlines and excerpts from publishers' own feeds and links
+            BlueLink gathers headlines and excerpts from publishers' own feeds and links
             straight back to them. Full articles are always read on the publisher's site,
             where the reporting belongs.
             {generatedAt && ` This edition was assembled on ${fullDate(generatedAt)}.`}

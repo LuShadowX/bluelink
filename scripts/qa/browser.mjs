@@ -18,11 +18,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
-/** Point at any deployment: PULSE_URL=https://... node scripts/qa/pwa.mjs */
-export const BASE_URL = process.env.PULSE_URL ?? 'http://localhost:4173/'
+/** Point at any deployment: BLUELINK_URL=https://... node scripts/qa/pwa.mjs */
+export const BASE_URL = process.env.BLUELINK_URL ?? 'http://localhost:4173/'
 
 /** Screenshots land here. Gitignored. */
-export const OUT_DIR = process.env.PULSE_QA_OUT ?? resolve(ROOT, '.qa-output')
+export const OUT_DIR = process.env.BLUELINK_QA_OUT ?? resolve(ROOT, '.qa-output')
 
 async function loadPlaywright() {
   try {

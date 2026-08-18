@@ -33,7 +33,16 @@ const CONCURRENCY = 8
 const MAX_AGE_DAYS = 21
 /** Stories kept per topic. Deep enough to scroll, small enough to stay fast. */
 const PER_TOPIC_LIMIT = 60
-const SUMMARY_MAX = 260
+/** Roughly 3–4 lines in the reader — enough to be worth reading on its own. */
+const SUMMARY_MAX = 420
+/**
+ * Plain-text ceiling for a candidate body. Past this a field is a full article
+ * dump rather than an excerpt, and preferring it would mean truncating from a
+ * worse starting point than a purpose-written standfirst.
+ */
+const SUMMARY_SOURCE_MAX = 4000
+/** A boilerplate rule that would leave less than this is skipped. */
+const SUMMARY_MIN_AFTER_STRIP = 40
 
 // ---------------------------------------------------------------------------
 // XML
@@ -184,6 +193,97 @@ function truncate(value, max) {
   if (lastStop > max * 0.55) return cut.slice(0, lastStop + 1)
   const lastSpace = cut.lastIndexOf(' ')
   return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[,;:—–-]$/, '')}…`
+}
+
+/**
+ * Publisher furniture that carries no information: syndication footers, "read
+ * on" markers, share/related link lists and attribution tails. Each rule is
+ * applied once, in order, by stripBoilerplate.
+ */
+const BOILERPLATE_RULES = [
+  // Leading byline: "By Jane Doe —" / "By Jane Doe,".
+  { name: 'leadingByline', re: /^\s*By\s+[A-Z][\w'’.-]*(?:\s+[A-Z][\w'’.-]*){0,3}\s*(?:—|–|-|,)\s+/ },
+  // WordPress/FeedBurner footer: "The post <headline> appeared first on <Publisher>."
+  { name: 'syndicationFooter', re: /\s*The post\b[\s\S]{0,300}?\bappeared first on\b[^.]{0,120}\.?/gi },
+  // "Share this:" and the sharing furniture that follows it.
+  { name: 'shareTail', re: /\s*\bShare this\b\s*:?[\s\S]*$/i },
+  // "Related:" / "Related Stories:" — everything after is a link list.
+  { name: 'relatedTail', re: /\s*\bRelated(?:\s+(?:Stories|Reading|Articles|Posts))?\s*:[\s\S]*$/i },
+  // Markers left where the feed cut the article off.
+  {
+    name: 'continuationMarkers',
+    re: /\s*(?:\[\s*(?:…|\.{2,})\s*\]|\bContinue reading\b[^.]{0,80}|\bRead (?:more|the full story|the full article)\b[^.]{0,80})\s*[.…]*/gi,
+  },
+  // Trailing attribution: "Source: Foo" / "via Foo".
+  { name: 'trailingSource', re: /\s*(?:Source\s*:\s*|[Vv]ia\s+)[A-Z][^.\n]{0,40}\s*$/ },
+]
+
+/**
+ * Conservative by design: a rule that would leave almost nothing behind has
+ * over-matched, so its effect is dropped rather than emptying the summary.
+ */
+function stripBoilerplate(input) {
+  let out = String(input).trim()
+  for (const rule of BOILERPLATE_RULES) {
+    const next = out.replace(rule.re, ' ').replace(/\s+/g, ' ').trim()
+    if (next === out) continue
+    if (next.length < SUMMARY_MIN_AFTER_STRIP && out.length >= SUMMARY_MIN_AFTER_STRIP) continue
+    out = next
+  }
+  return out.replace(/\s+([,.;:!?])/g, '$1').trim()
+}
+
+/**
+ * Feeds disagree about which field holds the real prose: `description` is often
+ * a one-line teaser while `content:encoded` carries the article. So collect
+ * every candidate, clean each, and keep the longest that still reads as an
+ * excerpt rather than a whole page.
+ */
+function pickSummarySource(item) {
+  const candidates = [
+    item.description,
+    item.summary,
+    item['media:description'],
+    item['content:encoded'],
+    item.content,
+    item['dc:description'],
+    item.subtitle,
+  ]
+
+  let best = ''
+  let oversized = ''
+  for (const candidate of candidates) {
+    const plain = stripBoilerplate(stripHtml(text(candidate)))
+    if (!plain) continue
+    if (plain.length > SUMMARY_SOURCE_MAX) {
+      // Only used if nothing sane exists — better than reporting no summary.
+      if (!oversized) oversized = plain.slice(0, SUMMARY_SOURCE_MAX)
+      continue
+    }
+    if (plain.length > best.length) best = plain
+  }
+  return best || oversized
+}
+
+/**
+ * A summary that merely repeats the headline is worse than no summary. When a
+ * longer summary only *opens* with the headline, drop that duplicated sentence
+ * and keep the real reporting underneath it.
+ */
+function dropEchoedHeadline(summary, title) {
+  const key = titleKey(title)
+  if (!summary || !key) return summary
+  if (!titleKey(summary).startsWith(key.slice(0, 40))) return summary
+
+  const opener = summary.match(/^[\s\S]*?[.!?…](?:\s+|$)/)
+  if (opener) {
+    const rest = summary.slice(opener[0].length).trim()
+    // Only a genuine restatement — a lead paragraph that happens to start with
+    // the headline's words is real prose and must survive intact.
+    const echoes = titleKey(opener[0]).length <= key.length + 20
+    if (echoes && rest.length >= 60 && !titleKey(rest).startsWith(key.slice(0, 40))) return rest
+  }
+  return summary.length < title.length + 24 ? '' : summary
 }
 
 function parseDate(...candidates) {
@@ -348,21 +448,10 @@ function normalizeItem(item, feed, topic) {
     item['a10:updated']
   )
 
-  const rawSummary =
-    text(item.description) ||
-    text(item.summary) ||
-    text(item['media:description']) ||
-    text(item['content:encoded']) ||
-    text(item.content)
-
-  let summary = truncate(stripHtml(rawSummary), SUMMARY_MAX)
-  // A summary that merely repeats the headline is worse than no summary.
-  if (
-    titleKey(summary).startsWith(titleKey(title).slice(0, 40)) &&
-    summary.length < title.length + 24
-  ) {
-    summary = ''
-  }
+  const summary = truncate(
+    dropEchoedHeadline(pickSummarySource(item), title),
+    SUMMARY_MAX
+  )
 
   const author = stripHtml(
     text(item['dc:creator']) || text(item.author?.name) || text(item.author) || ''

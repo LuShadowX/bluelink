@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Article } from '../types'
 
-const KEY = 'pulse.saved.v1'
+const KEY = 'bluelink.saved.v1'
+/** Reading lists saved before the app was renamed. Read once, then migrated. */
+const LEGACY_KEY = 'pulse.saved.v1'
 /** Enough to be a reading list, not enough to grow unbounded. */
 const LIMIT = 200
 
 function read(): Article[] {
   try {
-    const raw = window.localStorage.getItem(KEY)
+    const raw = window.localStorage.getItem(KEY) ?? window.localStorage.getItem(LEGACY_KEY)
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -32,7 +34,7 @@ export function useSaved() {
     }
   }, [saved])
 
-  // Keep two tabs of Pulse in agreement.
+  // Keep two tabs of BlueLink in agreement.
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === KEY) setSaved(read())

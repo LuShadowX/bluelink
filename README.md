@@ -1,4 +1,4 @@
-# Pulse
+# BlueLink
 
 An editorial news reader for tech, AI, sport, games and lifestyle.
 
@@ -16,10 +16,10 @@ JSON in `public/data/` for the app to read.
 
 ## How it works
 
-Pulse is a static app in front of a static payload. A Node pipeline (`scripts/fetch-news.mjs`)
+BlueLink is a static app in front of a static payload. A Node pipeline (`scripts/fetch-news.mjs`)
 reads the feed list in `scripts/feeds.json`, requests all 43 RSS feeds server-side, normalises
 and de-duplicates the items, and writes one JSON file per topic into `public/data/` alongside an
-`index.json` manifest. The browser only ever fetches those files from Pulse's own origin, so
+`index.json` manifest. The browser only ever fetches those files from BlueLink's own origin, so
 there is no CORS proxy to keep alive, no API key to rotate and no per-visitor rate limit to hit —
 a thousand readers cost the publishers a single request. It also isolates failure: because each
 topic is written independently and the manifest records a `failures[]` list, one publisher going
@@ -46,14 +46,14 @@ hours, logging the next scheduled run. Leave it in a second terminal beside `npm
 
 ## Installing on a phone
 
-Pulse is an installable web app. Open the live site at
-<https://lushadowx.github.io/pulse-news/> on the phone, then:
+BlueLink is an installable web app. Open the live site at
+<https://lushadowx.github.io/bluelink/> on the phone, then:
 
 - **Android (Chrome).** Use the menu's **Install app**, or **Add to Home screen** if that is
   the wording offered.
 - **iOS (Safari).** Use **Share → Add to Home Screen**.
 
-Installed, Pulse launches without browser chrome, keeps its own icon on the home screen, and
+Installed, BlueLink launches without browser chrome, keeps its own icon on the home screen, and
 opens straight into the front page. It reads offline from the last edition it downloaded, and
 pulling down at the top of the page refreshes it.
 
@@ -161,7 +161,7 @@ Everything under `public/data/` is generated. Change `scripts/feeds.json` and re
 
 ## Deployment
 
-Pulse deploys to GitHub Pages from `.github/workflows/deploy.yml`. To enable it on a fresh
+BlueLink deploys to GitHub Pages from `.github/workflows/deploy.yml`. To enable it on a fresh
 clone, open **Settings → Pages** and set **Source** to **GitHub Actions**. No other
 configuration is needed — Vite's `base` is `'./'`, so the build works from a project subpath
 as well as a custom domain.
@@ -181,6 +181,6 @@ shipping app, and there is no APK or IPA.
 
 ## Attribution
 
-Pulse is a reader, not a republisher. It links out to publishers and displays only the
+BlueLink is a reader, not a republisher. It links out to publishers and displays only the
 headline, excerpt and metadata that each feed provides. Full articles are read on the
 publisher's own site, and every headline links there directly.

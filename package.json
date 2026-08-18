@@ -1,9 +1,9 @@
 {
-  "name": "pulse-news",
+  "name": "bluelink",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Pulse — an editorial news reader for tech, AI, sports, games and lifestyle.",
+  "description": "BlueLink — an editorial news reader for tech, AI, sports, games and lifestyle.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

@@ -37,11 +37,11 @@ node scripts/qa/icons.mjs     # regenerate app icons from scripts/icon-source.sv
 Any deployment can be targeted instead of localhost:
 
 ```bash
-PULSE_URL=https://lushadowx.github.io/pulse-news/ node scripts/qa/pwa.mjs
+BLUELINK_URL=https://lushadowx.github.io/pulse-news/ node scripts/qa/pwa.mjs
 ```
 
 Screenshots are written to `.qa-output/` (gitignored); override with
-`PULSE_QA_OUT`.
+`BLUELINK_QA_OUT`.
 
 ## Notes worth knowing
 

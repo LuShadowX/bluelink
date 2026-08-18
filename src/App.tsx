@@ -16,7 +16,7 @@ import { TopicPage } from './pages/TopicPage'
 import { SavedPage } from './pages/SavedPage'
 import { RefreshIcon } from './components/icons'
 
-function Pulse() {
+function BlueLink() {
   const {
     status,
     error,
@@ -39,6 +39,8 @@ function Pulse() {
   const pull = usePullToRefresh(refreshNow)
 
   const [reading, setReading] = useState<Article | null>(null)
+  /** The card artwork the open panel grew from, and will shrink back into. */
+  const [origin, setOrigin] = useState<HTMLElement | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
 
   const highlights = index?.highlights ?? []
@@ -59,21 +61,22 @@ function Pulse() {
    * related story from inside the reader stacks another entry, which makes back
    * walk the reading trail in the order it happened.
    */
-  const openArticle = useCallback((article: Article) => {
+  const openArticle = useCallback((article: Article, origin?: HTMLElement | null) => {
     setSearchOpen(false)
+    setOrigin(origin ?? null)
     setReading(article)
-    window.history.pushState({ pulseReader: article.id }, '')
+    window.history.pushState({ readerArticle: article.id }, '')
   }, [])
 
   const closeReader = useCallback(() => {
-    const state = window.history.state as { pulseReader?: string } | null
-    if (state?.pulseReader) window.history.back()
+    const state = window.history.state as { readerArticle?: string } | null
+    if (state?.readerArticle) window.history.back()
     else setReading(null)
   }, [])
 
   useEffect(() => {
     const onPop = () => {
-      const id = (window.history.state as { pulseReader?: string } | null)?.pulseReader
+      const id = (window.history.state as { readerArticle?: string } | null)?.readerArticle
       setReading(id ? (lookup.get(id) ?? null) : null)
     }
     window.addEventListener('popstate', onPop)
@@ -203,6 +206,7 @@ function Pulse() {
           saved={savedIds.has(reading.id)}
           savedIds={savedIds}
           now={now}
+          origin={origin}
           onClose={closeReader}
           onOpen={openArticle}
           onToggleSave={toggle}
@@ -224,7 +228,7 @@ function Pulse() {
 export default function App() {
   return (
     <NewsProvider>
-      <Pulse />
+      <BlueLink />
     </NewsProvider>
   )
 }

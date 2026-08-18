@@ -12,6 +12,7 @@ import {
   ArrowUpRightIcon,
   BookmarkIcon,
   CheckIcon,
+  CloseIcon,
   LinkIcon,
 } from './icons'
 
@@ -21,9 +22,46 @@ interface Props {
   saved: boolean
   savedIds: Set<string>
   now: number
+  /** The artwork that was tapped. The panel grows from it and returns to it. */
+  origin: HTMLElement | null
   onClose: () => void
-  onOpen: (article: Article) => void
+  onOpen: (article: Article, origin?: HTMLElement | null) => void
   onToggleSave: (article: Article) => void
+}
+
+const DURATION = 420
+const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
+
+function reducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/**
+ * The transform that would place `panel` exactly over `origin`.
+ *
+ * Animating this rather than animating width and height keeps the whole
+ * movement on the compositor, so a panel full of text and images still travels
+ * at 60fps. A single uniform scale is used even though the two rectangles have
+ * different proportions — matching both axes distorts the text mid-flight,
+ * which is far more noticeable than the slight crop this leaves.
+ */
+function transformOnto(panel: DOMRect, origin: DOMRect): string {
+  const scale = Math.max(0.12, Math.min(1, origin.width / panel.width))
+  const dx = origin.left + origin.width / 2 - (panel.left + panel.width / 2)
+  const dy = origin.top + origin.height / 2 - (panel.top + panel.height / 2)
+  return `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(${scale.toFixed(4)})`
+}
+
+/** True when the element is still somewhere the reader could fly back to. */
+function isOnScreen(rect: DOMRect): boolean {
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    rect.bottom > 0 &&
+    rect.top < window.innerHeight &&
+    rect.right > 0 &&
+    rect.left < window.innerWidth
+  )
 }
 
 export function Reader({
@@ -32,40 +70,111 @@ export function Reader({
   saved,
   savedIds,
   now,
+  origin,
   onClose,
   onOpen,
   onToggleSave,
 }: Props) {
   const topic = getTopic(article.topic)
-  const scrollerRef = useRef<HTMLDivElement>(null)
-  const closeRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [copied, setCopied] = useState(false)
+  const closingRef = useRef(false)
+
+  /** Animate back to the card, then let the parent unmount us. */
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return
+    closingRef.current = true
+
+    const panel = panelRef.current
+    const backdrop = backdropRef.current
+    if (!panel || reducedMotion()) {
+      onClose()
+      return
+    }
+
+    const rect = panel.getBoundingClientRect()
+    const originRect = origin?.getBoundingClientRect()
+    // If the card has been scrolled away there is nowhere honest to fly back
+    // to, so the panel simply settles instead of shooting off-screen.
+    const to =
+      originRect && isOnScreen(originRect)
+        ? transformOnto(rect, originRect)
+        : 'translateY(24px) scale(0.97)'
+
+    backdrop?.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: DURATION * 0.8,
+      easing: 'ease-out',
+      fill: 'both',
+    })
+    const flight = panel.animate(
+      [
+        { transform: 'none', opacity: 1 },
+        { transform: to, opacity: 0 },
+      ],
+      { duration: DURATION, easing: EASE, fill: 'both' }
+    )
+    flight.onfinish = () => onClose()
+    // A dropped animation frame must never strand the reader open.
+    window.setTimeout(() => onClose(), DURATION + 120)
+  }, [onClose, origin])
+
+  // Grow out of the card that was tapped.
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+
+    const originRect = origin?.getBoundingClientRect()
+    if (!originRect || !isOnScreen(originRect) || reducedMotion()) {
+      panel.animate(
+        [
+          { transform: 'translateY(16px)', opacity: 0 },
+          { transform: 'none', opacity: 1 },
+        ],
+        { duration: reducedMotion() ? 1 : DURATION * 0.7, easing: EASE, fill: 'both' }
+      )
+      return
+    }
+
+    panel.animate(
+      [
+        { transform: transformOnto(panel.getBoundingClientRect(), originRect), opacity: 0 },
+        { transform: 'none', opacity: 1 },
+      ],
+      { duration: DURATION, easing: EASE, fill: 'both' }
+    )
+    // Only run on first mount; opening a related story is handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Escape closes, and the page behind must not scroll while this is open.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') requestClose()
     }
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     document.addEventListener('keydown', onKey)
-    closeRef.current?.focus()
+    // Focus the dialog itself, not the back button. Moving focus is what tells a
+    // screen reader the panel has opened, but focusing a control paints a focus
+    // ring on it, which on a touch device looks like a rendering fault.
+    panelRef.current?.focus({ preventScroll: true })
     return () => {
       document.body.style.overflow = previous
       document.removeEventListener('keydown', onKey)
     }
-  }, [onClose])
+  }, [requestClose])
 
   // Opening a related story reuses this component, so reset the scroll.
   useEffect(() => {
-    scrollerRef.current?.scrollTo({ top: 0 })
+    panelRef.current?.scrollTo({ top: 0 })
     setProgress(0)
     setCopied(false)
   }, [article.id])
 
   const onScroll = useCallback(() => {
-    const el = scrollerRef.current
+    const el = panelRef.current
     if (!el) return
     const travel = el.scrollHeight - el.clientHeight
     setProgress(travel > 40 ? Math.min(1, el.scrollTop / travel) : 0)
@@ -82,131 +191,169 @@ export function Reader({
   }
 
   return (
-    <div
-      className="reader"
-      role="dialog"
-      aria-modal="true"
-      aria-label={article.title}
-      ref={scrollerRef}
-      onScroll={onScroll}
-      style={accent(topic)}
-    >
-      <div className="reader__progress" style={{ '--progress': progress } as React.CSSProperties} />
+    <div className="reader-layer" style={accent(topic)}>
+      {/*
+        The page stays visible and dimmed behind the panel rather than being
+        replaced. Keeping the front page in view is what makes this read as
+        opening a story rather than navigating away from one.
+      */}
+      <div
+        className="reader-backdrop"
+        ref={backdropRef}
+        onClick={requestClose}
+        aria-hidden="true"
+      />
 
-      <div className="reader__bar">
-        <button type="button" className="reader__back" onClick={onClose} ref={closeRef}>
-          <ArrowLeftIcon />
-          Back to Pulse
-        </button>
-        <span className="reader__bar-spacer" />
-        <button
-          type="button"
-          className={`icon-button${saved ? ' icon-button--on' : ''}`}
-          onClick={() => onToggleSave(article)}
-          aria-pressed={saved}
-          aria-label={saved ? 'Remove from saved' : 'Save this story'}
-          title={saved ? 'Saved' : 'Save for later'}
-        >
-          <BookmarkIcon filled={saved} />
-        </button>
-        <button
-          type="button"
-          className={`icon-button${copied ? ' icon-button--on' : ''}`}
-          onClick={copyLink}
-          aria-label="Copy link to this story"
-          title={copied ? 'Link copied' : 'Copy link'}
-        >
-          {copied ? <CheckIcon /> : <LinkIcon />}
-        </button>
-      </div>
+      <div
+        className="reader"
+        role="dialog"
+        aria-modal="true"
+        aria-label={article.title}
+        ref={panelRef}
+        tabIndex={-1}
+        onScroll={onScroll}
+      >
+        <div
+          className="reader__progress"
+          style={{ '--progress': progress } as React.CSSProperties}
+        />
 
-      <article className="reader__article">
-        <p className="reader__kicker">{topic.kicker}</p>
-
-        <h1 className="reader__title">{article.title}</h1>
-
-        <div className="reader__meta">
-          <span className="reader__source">{article.source}</span>
-          {article.author && (
-            <>
-              <span className="card__meta-sep" aria-hidden="true" />
-              <span>{article.author}</span>
-            </>
-          )}
-          <span className="card__meta-sep" aria-hidden="true" />
-          <span>
-            {article.dateEstimated
-              ? shortAgo(article.publishedAt, now)
-              : `${fullDate(article.publishedAt)} · ${clockTime(article.publishedAt)}`}
-          </span>
-        </div>
-
-        {article.image && (
-          <figure className="reader__figure">
-            <StoryImage src={article.image} alt="" letter={topic.label.charAt(0)} eager />
-            <figcaption className="reader__credit" style={{ marginTop: 'var(--sp-2)' }}>
-              Image: {article.source}
-            </figcaption>
-          </figure>
-        )}
-
-        {article.summary && (
-          <p
-            className={`reader__lede${article.summary.length > 150 ? ' reader__lede--drop' : ''}`}
+        <div className="reader__bar">
+          <button type="button" className="reader__back" onClick={requestClose}>
+            <ArrowLeftIcon />
+            Back
+          </button>
+          <span className="reader__bar-spacer" />
+          <button
+            type="button"
+            className={`icon-button${saved ? ' icon-button--on' : ''}`}
+            onClick={() => onToggleSave(article)}
+            aria-pressed={saved}
+            aria-label={saved ? 'Remove from saved' : 'Save this story'}
+            title={saved ? 'Saved' : 'Save for later'}
           >
-            {article.summary}
-          </p>
-        )}
+            <BookmarkIcon filled={saved} />
+          </button>
+          <button
+            type="button"
+            className={`icon-button${copied ? ' icon-button--on' : ''}`}
+            onClick={copyLink}
+            aria-label="Copy link to this story"
+            title={copied ? 'Link copied' : 'Copy link'}
+          >
+            {copied ? <CheckIcon /> : <LinkIcon />}
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={requestClose}
+            aria-label="Close"
+            title="Close"
+          >
+            <CloseIcon />
+          </button>
+        </div>
 
-        {/*
-          Pulse deliberately stops here. The excerpt is what the publisher put
-          in their feed; the article itself is theirs to serve, with their
-          layout, their advertising and their byline.
-        */}
-        <div className="reader__handoff">
-          <p className="reader__handoff-text">
-            This is the excerpt {article.source} publishes in their feed. Continue on
-            their site for the full story.
-          </p>
-          <div className="reader__actions">
-            <a
-              className="button"
-              href={article.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(event) => {
-                if (event.metaKey || event.ctrlKey || event.shiftKey) return
-                // Inside a native shell target="_blank" would navigate the app's
-                // own WebView and leave no way back.
-                event.preventDefault()
-                openExternal(article.url)
-              }}
-            >
-              Read at {article.sourceHost || article.source}
-              <ArrowUpRightIcon />
-            </a>
+        <article className="reader__article">
+          <p className="reader__kicker">{topic.kicker}</p>
+
+          <h1 className="reader__title">{article.title}</h1>
+
+          <div className="reader__meta">
+            <span className="reader__source">{article.source}</span>
+            {article.author && (
+              <>
+                <span className="card__meta-sep" aria-hidden="true" />
+                <span>{article.author}</span>
+              </>
+            )}
+            <span className="card__meta-sep" aria-hidden="true" />
+            <span>
+              {article.dateEstimated
+                ? shortAgo(article.publishedAt, now)
+                : `${fullDate(article.publishedAt)} · ${clockTime(article.publishedAt)}`}
+            </span>
           </div>
-        </div>
-      </article>
 
-      {related.length > 0 && (
-        <div className="reader__related">
-          <SectionRule label={`More in ${topic.label}`} />
-          {related.map((item, i) => (
-            <ArticleCard
-              key={item.id}
-              article={item}
-              variant="row"
-              index={i + 1}
-              saved={savedIds.has(item.id)}
-              now={now}
-              onOpen={onOpen}
-              onToggleSave={onToggleSave}
-              showKicker={false}
-            />
-          ))}
-        </div>
-      )}
+          {article.image && (
+            <figure className="reader__figure">
+              <StoryImage src={article.image} alt="" letter={topic.label.charAt(0)} eager />
+              <figcaption className="reader__credit" style={{ marginTop: 'var(--sp-2)' }}>
+                Image: {article.source}
+              </figcaption>
+            </figure>
+          )}
+
+          {/*
+            The excerpt is the point of this screen. Opening a story should give
+            you something to actually read — enough to know what happened and
+            whether you care — and only then offer the link. A reader that leads
+            with a button is a redirect with extra steps.
+          */}
+          {article.summary ? (
+            <p
+              className={`reader__lede${article.summary.length > 150 ? ' reader__lede--drop' : ''}`}
+            >
+              {article.summary}
+            </p>
+          ) : (
+            <p className="reader__lede reader__lede--bare">
+              {article.source} published this one without a summary, so there is nothing
+              to preview here.
+            </p>
+          )}
+
+          {/*
+            BlueLink deliberately stops at the excerpt. The rest of the article
+            is the publisher's to serve, with their layout, their advertising
+            and their byline.
+          */}
+          <div className="reader__handoff">
+            <p className="reader__handoff-text">
+              {article.summary
+                ? `Want the rest? ${article.source} has the full story.`
+                : `${article.source} has the full story on their site.`}
+            </p>
+            <div className="reader__actions">
+              <a
+                className="button"
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey) return
+                  // Inside a native shell target="_blank" would navigate the
+                  // app's own WebView and leave no way back.
+                  event.preventDefault()
+                  openExternal(article.url)
+                }}
+              >
+                Continue at {article.sourceHost || article.source}
+                <ArrowUpRightIcon />
+              </a>
+            </div>
+          </div>
+        </article>
+
+        {related.length > 0 && (
+          <div className="reader__related">
+            <SectionRule label={`More in ${topic.label}`} />
+            {related.map((item, i) => (
+              <ArticleCard
+                key={item.id}
+                article={item}
+                variant="row"
+                index={i + 1}
+                saved={savedIds.has(item.id)}
+                now={now}
+                onOpen={onOpen}
+                onToggleSave={onToggleSave}
+                showKicker={false}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

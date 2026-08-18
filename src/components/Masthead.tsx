@@ -88,13 +88,16 @@ export function Masthead({
         <a
           className="wordmark"
           href="#/"
+          aria-label="BlueLink — front page"
           onClick={(event) => {
             event.preventDefault()
             navigate({ view: 'home' })
           }}
         >
-          Pulse
-          <span className="wordmark__dot" aria-hidden="true" />
+          {/* Served from public/ rather than imported, so the service worker can
+              precache it at a stable URL and the mark survives offline. */}
+          <img className="wordmark__mark" src="./mark.png" alt="" width={18} height={26} />
+          <span className="wordmark__name">BlueLink</span>
         </a>
 
         <nav className="nav" aria-label="Sections">

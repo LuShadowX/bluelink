@@ -1,8 +1,8 @@
 {
-  "name": "Pulse — Tech, AI, Sports, Games & Lifestyle",
-  "short_name": "Pulse",
-  "description": "An editorial news reader for technology, artificial intelligence, sport, games and lifestyle. Refreshes itself every six hours.",
-  "id": "/pulse-news/",
+  "name": "BlueLink — Tech, AI, Sports, Games & Lifestyle",
+  "short_name": "BlueLink",
+  "description": "BlueLink is an editorial news reader for technology, artificial intelligence, sport, games and lifestyle. Refreshes itself every six hours.",
+  "id": "/bluelink/",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

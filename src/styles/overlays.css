@@ -2,35 +2,63 @@
  * Reader
  * ------------------------------------------------------------------------- */
 
-.reader {
+/*
+ * A story opens as a panel over the page rather than replacing it. The page
+ * behind stays visible and dimmed, which is what makes the gesture read as
+ * opening something rather than navigating away — and gives the panel somewhere
+ * to shrink back to when it closes.
+ */
+.reader-layer {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--paper);
+  display: grid;
+  place-items: center;
+  padding: clamp(0px, 4vh, 44px) clamp(0px, 3vw, 44px);
+}
+
+.reader-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 16, 13, 0.52);
+  backdrop-filter: blur(4px) saturate(115%);
+  -webkit-backdrop-filter: blur(4px) saturate(115%);
+  animation: fade var(--dur-base) var(--ease-out) both;
+}
+
+.reader {
+  position: relative;
+  width: min(880px, 100%);
+  max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  animation: reader-in 420ms var(--ease-out) both;
+  background: var(--paper);
+  border-radius: 16px;
+  /* Two shadows: a long soft one for the lift, a tight one for the edge. */
+  box-shadow:
+    0 50px 100px -34px rgba(12, 10, 8, 0.55),
+    0 2px 10px rgba(12, 10, 8, 0.12);
+  /* The open and close flights are driven by the Web Animations API, so the
+     compositor needs fair warning. */
+  will-change: transform, opacity;
 }
 
-@keyframes reader-in {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* The panel takes focus on open so screen readers announce it. That is a
+   programmatic focus, not a keyboard one, so it must not draw a ring. */
+.reader:focus,
+.reader:focus-visible {
+  outline: none;
 }
 
-/* Reading progress. The only chrome that moves while you read. */
+/* Reading progress, drawn along the top edge of the sticky bar. */
 .reader__progress {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   height: 2px;
   width: 100%;
-  z-index: 3;
+  z-index: 4;
+  margin-bottom: -2px;
   transform-origin: 0 50%;
   transform: scaleX(var(--progress, 0));
   background: var(--accent);
@@ -43,12 +71,11 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
-  height: 56px;
-  box-sizing: content-box;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-left: max(var(--shell-pad), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--shell-pad), env(safe-area-inset-right, 0px));
+  gap: var(--sp-3);
+  height: 54px;
+  padding-inline: var(--sp-5);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
@@ -78,10 +105,9 @@
 
 .reader__article {
   width: 100%;
-  max-width: 748px;
+  max-width: 720px;
   margin-inline: auto;
-  padding: var(--sp-8) var(--shell-pad) var(--sp-9);
-  padding-bottom: calc(var(--sp-9) + env(safe-area-inset-bottom, 0px));
+  padding: var(--sp-7) var(--sp-6) var(--sp-8);
 }
 
 .reader__kicker {
@@ -165,17 +191,25 @@
   color: var(--ink);
 }
 
+/* A ruled row, not a boxed card. Boxing it gave the link the visual weight of
+   the article, which is exactly backwards — the excerpt above is what the
+   reader came for. */
 .reader__handoff {
   margin-top: var(--sp-7);
-  padding: var(--sp-5);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  background: var(--paper-raised);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--rule);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
   flex-wrap: wrap;
+}
+
+/* Shown in place of an excerpt when the feed carried no text at all. */
+.reader__lede--bare {
+  color: var(--ink-muted);
+  font-style: italic;
+  font-size: 1.0625rem;
 }
 
 .reader__handoff-text {
@@ -191,9 +225,10 @@
 }
 
 .reader__related {
-  max-width: 748px;
+  max-width: 720px;
   margin-inline: auto;
-  padding: 0 var(--shell-pad) var(--sp-9);
+  padding: 0 var(--sp-6) var(--sp-8);
+  padding-bottom: calc(var(--sp-8) + env(safe-area-inset-bottom, 0px));
 }
 
 /* ---------------------------------------------------------------------------
@@ -369,6 +404,35 @@ kbd {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-soft);
+}
+
+/* On a phone a floating panel is just a smaller screen with wasted edges, so
+   the reader takes the whole viewport and drops its rounding. */
+@media (max-width: 760px) {
+  .reader-layer {
+    padding: 0;
+  }
+
+  .reader {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .reader__bar {
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    box-sizing: content-box;
+    padding-left: max(var(--sp-4), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
+  }
+
+  .reader__article,
+  .reader__related {
+    padding-inline: max(var(--sp-5), env(safe-area-inset-left, 0px));
+  }
 }
 
 @media (max-width: 560px) {

@@ -1,5 +1,5 @@
 /*
- * Pulse design tokens.
+ * BlueLink design tokens.
  *
  * The palette is a warm paper white with near-black ink and hairline rules —
  * closer to a printed weekend supplement than to a dashboard. Colour is spent
@@ -26,9 +26,15 @@
   --rule-strong: #c6bfb2;
   --rule-hair: rgba(20, 18, 15, 0.09);
 
-  /* ---- Accent (rebound per topic at runtime) ------------------------- */
-  --accent: #2049c4;
-  --accent-wash: rgba(32, 73, 196, 0.08);
+  /* ---- Brand ---------------------------------------------------------
+     Sampled from the BlueLink mark itself, so the interface and the logo
+     agree rather than merely coordinating. */
+  --brand: #1554ed;
+
+  /* ---- Accent (rebound per topic at runtime) -------------------------
+     Defaults to the brand blue; each section overrides it on a wrapper. */
+  --accent: var(--brand);
+  --accent-wash: rgba(21, 84, 237, 0.08);
 
   /* ---- Type ---------------------------------------------------------- */
   --font-display: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype',
