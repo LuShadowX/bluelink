@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   src: string | null
@@ -18,9 +18,26 @@ interface Props {
 export function StoryImage({ src, alt, letter, eager = false, sizes }: Props) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
 
-  // A fresh issue can reuse this component with a different URL.
+  /*
+   * Reset for a new URL, then check whether the browser has already finished
+   * with it.
+   *
+   * That second half is not defensive coding, it is a real bug fix: a cached
+   * image can complete before React attaches onLoad, in which case the event
+   * never fires, `loaded` stays false and a perfectly good photograph sits
+   * there at opacity 0. It only shows up on a second visit — the first, cold
+   * load always races slowly enough to work — which is exactly the kind of
+   * defect that survives a hundred passing builds.
+   */
   useEffect(() => {
+    const img = imgRef.current
+    if (img?.complete && img.naturalWidth > 0) {
+      setLoaded(true)
+      setFailed(false)
+      return
+    }
     setLoaded(false)
     setFailed(false)
   }, [src])
@@ -35,6 +52,7 @@ export function StoryImage({ src, alt, letter, eager = false, sizes }: Props) {
         </div>
       ) : (
         <img
+          ref={imgRef}
           className={`story-image__img${loaded ? ' story-image__img--in' : ''}`}
           src={src}
           alt={alt}

@@ -20,7 +20,7 @@
 .reader-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(18, 16, 13, 0.52);
+  background: rgba(13, 13, 20, 0.55);
   backdrop-filter: blur(4px) saturate(115%);
   -webkit-backdrop-filter: blur(4px) saturate(115%);
   animation: fade var(--dur-base) var(--ease-out) both;
@@ -32,12 +32,10 @@
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--paper);
-  border-radius: 16px;
-  /* Two shadows: a long soft one for the lift, a tight one for the edge. */
-  box-shadow:
-    0 50px 100px -34px rgba(12, 10, 8, 0.55),
-    0 2px 10px rgba(12, 10, 8, 0.12);
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-lg);
   /* The open and close flights are driven by the Web Animations API, so the
      compositor needs fair warning. */
   will-change: transform, opacity;
@@ -55,10 +53,10 @@
   position: sticky;
   top: 0;
   left: 0;
-  height: 2px;
+  height: 3px;
   width: 100%;
   z-index: 4;
-  margin-bottom: -2px;
+  margin-bottom: -3px;
   transform-origin: 0 50%;
   transform: scaleX(var(--progress, 0));
   background: var(--accent);
@@ -74,29 +72,34 @@
   gap: var(--sp-3);
   height: 54px;
   padding-inline: var(--sp-5);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: var(--line) solid var(--ink);
 }
 
 .reader__back {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
+  padding: 6px 12px 6px 9px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 500;
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
-  color: var(--ink-muted);
-  transition: color var(--dur-fast) var(--ease-out);
+  color: var(--ink);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .reader__back:hover {
-  color: var(--ink);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--lift-xs);
 }
 
 .reader__bar-spacer {
@@ -107,33 +110,40 @@
   width: 100%;
   max-width: 720px;
   margin-inline: auto;
-  padding: var(--sp-7) var(--sp-6) var(--sp-8);
+  padding: var(--sp-6) var(--sp-6) var(--sp-7);
 }
 
 .reader__kicker {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin-bottom: var(--sp-5);
+  margin-bottom: var(--sp-4);
+}
+
+.reader__kicker span {
+  padding: 4px 10px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--ink-inverse);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
-  color: var(--accent);
 }
 
 .reader__kicker::after {
   content: '';
   flex: 1;
-  height: 1px;
+  height: var(--line);
   background: var(--accent);
-  opacity: 0.28;
+  opacity: 0.3;
 }
 
 .reader__title {
-  font-size: clamp(2.1rem, 4.6vw, 3.4rem);
-  margin-bottom: var(--sp-5);
+  font-size: clamp(1.85rem, 4vw, 2.9rem);
+  margin-bottom: var(--sp-4);
 }
 
 .reader__meta {
@@ -141,8 +151,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--sp-3);
-  padding-bottom: var(--sp-5);
-  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--sp-4);
+  border-bottom: var(--line) solid var(--ink);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   letter-spacing: 0.08em;
@@ -152,18 +162,40 @@
 
 .reader__source {
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 700;
+}
+
+/* A tier-1 byline earns a small mark. It is the only place source reliability
+   is stated outright, and it belongs next to the name. */
+.reader__trust {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--pop);
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0.1em;
 }
 
 .reader__figure {
-  margin: var(--sp-6) 0 var(--sp-3);
+  margin: var(--sp-5) 0 var(--sp-3);
 }
 
 .reader__figure .story-image {
   aspect-ratio: 16 / 9;
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--lift-sm);
 }
 
 .reader__credit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   letter-spacing: 0.06em;
@@ -171,38 +203,84 @@
   text-transform: uppercase;
 }
 
+.reader__credit a {
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+/* ---- Video ------------------------------------------------------------- */
+
+/*
+ * The video plays inside the reader instead of throwing the reader out to
+ * YouTube. It stays a click away from loading anything: until the plate is
+ * tapped there is no iframe, no cookie and no third-party request.
+ */
+.reader__embed {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  margin: var(--sp-5) 0 var(--sp-3);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--lift-sm);
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.reader__embed iframe,
+.reader__embed .story-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.reader__embed-play {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.reader__embed-play span {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: var(--line) solid var(--ink);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--ink-inverse);
+  box-shadow: var(--lift-sm);
+  transition: transform var(--dur-fast) var(--ease-snap);
+}
+
+.reader__embed-play:hover span {
+  transform: scale(1.1);
+}
+
+/* ---- Excerpt ----------------------------------------------------------- */
+
 /* The excerpt is set as a proper lede — larger, looser, and clearly the start
    of an article rather than a card summary. */
 .reader__lede {
-  margin-top: var(--sp-6);
-  font-size: 1.3125rem;
-  line-height: 1.62;
+  margin-top: var(--sp-5);
+  font-size: 1.25rem;
+  line-height: 1.6;
   color: var(--ink-soft);
 }
 
 /* Only long enough excerpts get a drop cap. On a one-line summary the raised
    capital has nothing to sit against and reads as a glitch. */
 .reader__lede--drop::first-letter {
-  font-family: var(--font-display);
-  font-size: 3.1em;
+  font-family: var(--font-poster);
+  font-size: 2.9em;
   float: left;
-  line-height: 0.82;
-  padding: 0.06em 0.09em 0 0;
-  color: var(--ink);
-}
-
-/* A ruled row, not a boxed card. Boxing it gave the link the visual weight of
-   the article, which is exactly backwards — the excerpt above is what the
-   reader came for. */
-.reader__handoff {
-  margin-top: var(--sp-7);
-  padding-top: var(--sp-5);
-  border-top: 1px solid var(--rule);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  flex-wrap: wrap;
+  line-height: 0.86;
+  padding: 0.04em 0.1em 0 0;
+  color: var(--accent);
 }
 
 /* Shown in place of an excerpt when the feed carried no text at all. */
@@ -212,9 +290,47 @@
   font-size: 1.0625rem;
 }
 
+/*
+ * The paragraphs the pipeline pulled out of the article page. This is the part
+ * that makes the reader worth opening: enough reporting to know what happened
+ * before deciding whether to follow the link.
+ */
+.reader__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+/* An inked seam between the excerpt and the handoff, so the reader can see the
+   quotation ends here rather than wondering where the article went. */
+.reader__body::after {
+  content: '';
+  width: 56px;
+  height: var(--line);
+  margin-top: var(--sp-2);
+  background: var(--accent);
+}
+
+.reader__handoff {
+  margin-top: var(--sp-6);
+  padding: var(--sp-5);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-md);
+  background: var(--panel-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
 .reader__handoff-text {
   font-size: var(--step-small);
-  color: var(--ink-muted);
+  color: var(--ink-soft);
   max-width: 38ch;
 }
 
@@ -239,9 +355,9 @@
   position: fixed;
   inset: 0;
   z-index: 110;
-  background: color-mix(in srgb, var(--paper) 62%, transparent);
-  backdrop-filter: blur(10px) saturate(130%);
-  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  background: rgba(13, 13, 20, 0.4);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
   padding: max(6vh, calc(env(safe-area-inset-top, 0px) + var(--sp-4))) var(--sp-4)
     calc(var(--sp-6) + env(safe-area-inset-bottom, 0px));
   animation: fade var(--dur-fast) var(--ease-out) both;
@@ -252,12 +368,10 @@
   width: 100%;
   max-width: 740px;
   margin-inline: auto;
-  background: var(--paper-raised);
-  border: 1px solid var(--rule-strong);
-  border-radius: 10px;
-  /* One soft shadow in the whole product, and only because this panel has to
-     float convincingly above a page of text. */
-  box-shadow: 0 26px 60px -22px rgba(20, 18, 15, 0.28);
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-lg);
   overflow: hidden;
   animation: rise var(--dur-base) var(--ease-out) both;
 }
@@ -267,7 +381,7 @@
   align-items: center;
   gap: var(--sp-4);
   padding: var(--sp-5);
-  border-bottom: 1px solid var(--rule);
+  border-bottom: var(--line) solid var(--ink);
 }
 
 .search__input {
@@ -277,8 +391,9 @@
   background: none;
   outline: none;
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.4vw, 2rem);
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  font-size: clamp(1.4rem, 3.2vw, 1.9rem);
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
@@ -318,7 +433,7 @@
   align-items: baseline;
   gap: var(--sp-4);
   width: 100%;
-  padding: var(--sp-3) var(--sp-3);
+  padding: var(--sp-3);
   margin-inline: calc(var(--sp-3) * -1);
   border-radius: var(--radius-sm);
   text-align: left;
@@ -332,6 +447,7 @@
 
 .search__result[aria-selected='true'] {
   background: var(--accent-wash);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .search__result-topic {
@@ -339,7 +455,7 @@
   width: 5.4em;
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
@@ -349,17 +465,17 @@
   flex: 1;
   min-width: 0;
   font-family: var(--font-display);
-  font-size: 1.1875rem;
-  line-height: 1.28;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.3;
   color: var(--ink);
 }
 
 .search__result-title mark {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: inherit;
+  background: var(--pop);
+  color: var(--ink);
   border-radius: 2px;
-  padding: 0 1px;
+  padding: 0 2px;
 }
 
 .search__result-time {
@@ -382,13 +498,13 @@
   gap: var(--sp-4);
   flex-wrap: wrap;
   padding: var(--sp-3) var(--sp-5);
-  border-top: 1px solid var(--rule);
-  background: var(--paper-sunken);
+  border-top: var(--line) solid var(--ink);
+  background: var(--panel-sunken);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-muted);
 }
 
 kbd {
@@ -397,10 +513,10 @@ kbd {
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--ink);
   border-bottom-width: 2px;
   border-radius: 4px;
-  background: var(--paper-raised);
+  background: var(--panel);
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-soft);
@@ -417,12 +533,12 @@ kbd {
     width: 100%;
     height: 100%;
     max-height: 100%;
+    border: 0;
     border-radius: 0;
     box-shadow: none;
   }
 
   .reader__bar {
-    border-radius: 0;
     padding-top: env(safe-area-inset-top, 0px);
     box-sizing: content-box;
     padding-left: max(var(--sp-4), env(safe-area-inset-left, 0px));
@@ -441,6 +557,6 @@ kbd {
   }
 
   .reader__lede {
-    font-size: 1.1875rem;
+    font-size: 1.125rem;
   }
 }

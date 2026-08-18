@@ -3,7 +3,7 @@
  *
  * Written by hand rather than generated, because the caching rules here are
  * specific enough that a default precache-everything strategy would fight the
- * app: the whole point of BlueLink is that an edition is replaced every six hours,
+ * app: the whole point of BlueLink is that an edition is replaced every four hours,
  * so the JSON must never be served from cache while the network is reachable.
  *
  * Strategy per resource, and why:
@@ -16,7 +16,7 @@
  *                                    never allowed to eat unbounded storage
  */
 
-const VERSION = 'bluelink-v1'
+const VERSION = 'bluelink-v2'
 const SHELL_CACHE = `${VERSION}-shell`
 const DATA_CACHE = `${VERSION}-data`
 const IMAGE_CACHE = `${VERSION}-images`
@@ -43,6 +43,7 @@ const PRECACHE = [
   './data/sports.json',
   './data/games.json',
   './data/lifestyle.json',
+  './data/youtube.json',
 ]
 
 /**

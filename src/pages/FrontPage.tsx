@@ -1,5 +1,5 @@
 import type { Article } from '../types'
-import { TOPICS } from '../config/topics'
+import { TOPICS, getTopic } from '../config/topics'
 import { accent } from '../lib/style'
 import type { Route } from '../lib/useRoute'
 import { ArticleCard } from '../components/ArticleCard'
@@ -9,6 +9,8 @@ import { ArrowUpRightIcon } from '../components/icons'
 
 interface Props {
   highlights: Article[]
+  /** The trending YouTube rail, straight from index.json. */
+  videos: Article[]
   articlesByTopic: Partial<Record<string, Article[]>>
   savedIds: Set<string>
   now: number
@@ -20,11 +22,13 @@ interface Props {
 
 /**
  * The front page is composed rather than listed: one lead, a ranked rail, a
- * three-up feature row, then a band per section. The point is that a reader
- * scanning it once knows what today is about and what the five sections are.
+ * three-up feature row, the trending video shelf, then a band per section. The
+ * point is that a reader scanning it once knows what today is about and what
+ * the six sections hold.
  */
 export function FrontPage({
   highlights,
+  videos,
   articlesByTopic,
   savedIds,
   now,
@@ -105,7 +109,40 @@ export function FrontPage({
         </>
       )}
 
-      {TOPICS.map((topic) => {
+      {videos.length > 0 && (
+        <section style={accent(getTopic('youtube'))}>
+          <SectionRule
+            label="Trending on YouTube"
+            note={
+              <a
+                href="#/youtube"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={(event) => {
+                  event.preventDefault()
+                  navigate({ view: 'topic', topic: 'youtube' })
+                }}
+              >
+                The whole board
+                <ArrowUpRightIcon size={12} />
+              </a>
+            }
+          />
+          <div className="vrail">
+            {videos.slice(0, 8).map((video) => (
+              <ArticleCard
+                key={video.id}
+                article={video}
+                variant="standard"
+                saved={savedIds.has(video.id)}
+                showKicker={false}
+                {...shared}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {TOPICS.filter((topic) => !topic.video).map((topic) => {
         const band = (articlesByTopic[topic.id] ?? []).slice(0, 4)
         if (band.length === 0) return null
         return (

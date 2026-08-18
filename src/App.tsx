@@ -6,6 +6,7 @@ import { useRoute } from './lib/useRoute'
 import { useSaved } from './lib/useSaved'
 import { usePullToRefresh } from './lib/usePullToRefresh'
 import { PullIndicator } from './components/PullIndicator'
+import { XBackdrop } from './components/XBackdrop'
 import { Masthead } from './components/Masthead'
 import { Ticker } from './components/Ticker'
 import { Footer } from './components/Footer'
@@ -23,6 +24,7 @@ function BlueLink() {
     index,
     now,
     articlesByTopic,
+    videosByTopic,
     everyArticle,
     requestTopic,
     isStale,
@@ -118,8 +120,9 @@ function BlueLink() {
   if (status === 'error') {
     return (
       <>
+        <XBackdrop />
         <div className="page shell">
-          <div className="state" style={{ paddingTop: 'var(--sp-9)' }}>
+          <div className="state" style={{ marginTop: 'var(--sp-8)' }}>
             <h1 className="state__title">Today's edition didn't arrive</h1>
             <p className="state__body">
               {error} The stories are published as static files next to the app, so this
@@ -137,6 +140,8 @@ function BlueLink() {
 
   return (
     <>
+      <XBackdrop />
+
       <PullIndicator {...pull} />
 
       <Masthead
@@ -158,6 +163,7 @@ function BlueLink() {
       {route.view === 'home' && (
         <FrontPage
           highlights={highlights}
+          videos={index?.videos ?? []}
           articlesByTopic={articlesByTopic}
           savedIds={savedIds}
           now={now}
@@ -172,6 +178,7 @@ function BlueLink() {
         <TopicPage
           topic={getTopic(route.topic)}
           articles={articlesByTopic[route.topic]}
+          videos={videosByTopic[route.topic]}
           savedIds={savedIds}
           now={now}
           onRequest={() => requestTopic(route.topic)}

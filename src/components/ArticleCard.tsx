@@ -4,7 +4,14 @@ import { getTopic } from '../config/topics'
 import { accent } from '../lib/style'
 import { isBreaking, shortAgo } from '../lib/time'
 import { StoryImage } from './StoryImage'
-import { BookmarkIcon } from './icons'
+import { BookmarkIcon, PlayIcon } from './icons'
+
+/** 1_240_000 → "1.2M views". Compact, and never wider than the plate. */
+function shortCount(views: number): string {
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(views >= 10_000_000 ? 0 : 1)}M`
+  if (views >= 1_000) return `${Math.round(views / 1_000)}K`
+  return String(views)
+}
 
 export type CardVariant = 'lead' | 'feature' | 'standard' | 'row'
 
@@ -42,6 +49,7 @@ export function ArticleCard({
   eagerImage = false,
 }: Props) {
   const topic = getTopic(article.topic)
+  const isVideo = article.kind === 'video'
   // Kept deliberately narrow. Right after a refresh most of the feed is only
   // hours old, so a generous window flags everything and the badge stops
   // carrying information. Rows are excluded because the ranked rail already
@@ -78,6 +86,25 @@ export function ArticleCard({
             eager={eagerImage}
             sizes={IMAGE_SIZES[variant]}
           />
+
+          {/* A video has to announce itself on the plate. Everything else about
+              the card is identical, which is the point — a creator's upload is
+              a story in the section, not a separate kind of content. */}
+          {isVideo && (
+            <>
+              <span className="card__play" aria-hidden="true">
+                <PlayIcon size={variant === 'lead' || variant === 'feature' ? 20 : 15} />
+              </span>
+              {variant !== 'row' && (
+                <span className="card__vmeta">
+                  <span className="card__channel">{article.channel ?? article.source}</span>
+                  {article.views ? (
+                    <span className="card__views">{shortCount(article.views)} views</span>
+                  ) : null}
+                </span>
+              )}
+            </>
+          )}
         </div>
 
         <div className="card__body">

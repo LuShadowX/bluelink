@@ -1,52 +1,57 @@
 /* ---------------------------------------------------------------------------
- * Masthead
+ * Masthead — a floating bar, not a fixed band
+ *
+ * The header does not span the window any more. It is a cel like everything
+ * else: an inked white bar with an offset shadow, held a little below the top
+ * edge so the X field runs behind and around it. That is what makes the
+ * navigation read as floating above the page rather than bolted to it.
  * ------------------------------------------------------------------------- */
 
 .masthead {
   position: sticky;
   top: 0;
   z-index: 60;
-  background: color-mix(in srgb, var(--paper) 86%, transparent);
-  backdrop-filter: saturate(150%) blur(14px);
-  -webkit-backdrop-filter: saturate(150%) blur(14px);
-  border-bottom: 1px solid var(--rule);
-  /* Installed on a phone there is no browser chrome above this, so the bar
-     itself has to clear the status bar and camera cutout. */
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--sp-3));
+  padding-bottom: var(--sp-2);
+  /* A short white fade under the floating bar, so headlines scrolling past do
+     not collide with it while it is still translucent-looking. */
+  background: linear-gradient(var(--page) 62%, transparent);
 }
 
 .masthead__bar {
   display: flex;
   align-items: center;
-  gap: var(--sp-5);
+  gap: var(--sp-4);
   height: var(--header-h);
+  padding-inline: var(--sp-3);
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--lift);
 }
 
-/* The mark is angular and technical, so the name is set in the text face rather
-   than the editorial serif — a serif beside it reads as two unrelated brands.
-   The serif stays where it belongs, on the headlines. */
 .wordmark {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   flex: none;
-  padding-block: 7px;
+  padding: 5px 10px 5px 6px;
   color: var(--ink);
 }
 
 .wordmark__mark {
-  height: 26px;
+  height: 24px;
   width: auto;
   flex: none;
   display: block;
 }
 
 .wordmark__name {
-  font-family: var(--font-text);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-family: var(--font-poster);
+  font-size: 1.0625rem;
   line-height: 1;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
 
 @keyframes pulse-dot {
@@ -61,16 +66,19 @@
   }
 }
 
+/* ---- Floating tabs ---- */
+
 .nav {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin-right: auto;
 }
 
 .nav__link {
   position: relative;
-  padding: 7px 13px;
+  padding: 7px 12px;
+  border: var(--line-hair) solid transparent;
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
@@ -81,17 +89,27 @@
   white-space: nowrap;
   transition:
     color var(--dur-fast) var(--ease-out),
-    background-color var(--dur-fast) var(--ease-out);
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-snap),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .nav__link:hover {
   color: var(--ink);
-  background: var(--paper-sunken);
+  border-color: var(--ink);
+  background: var(--panel);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--lift-xs);
 }
 
+/* The current section is a filled, inked, lifted chip in its own colour. */
 .nav__link[aria-current='page'] {
-  color: var(--paper-raised);
+  color: var(--ink-inverse);
   background: var(--nav-accent, var(--ink));
+  border-color: var(--ink);
+  box-shadow: var(--lift-xs);
+  transform: translate(-1px, -1px);
 }
 
 .masthead__tools {
@@ -108,26 +126,31 @@
   align-items: center;
   gap: 7px;
   padding: 6px 11px 6px 9px;
-  border: 1px solid var(--rule);
+  border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-pill);
+  background: var(--panel);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-muted);
-  transition: border-color var(--dur-fast) var(--ease-out);
+  color: var(--ink-soft);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .freshness__dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--ink);
   border-radius: 50%;
-  background: #2f9e6b;
+  background: #00c46a;
   flex: none;
 }
 
 .freshness--stale .freshness__dot {
-  background: var(--ink-faint);
+  background: var(--panel-deep);
 }
 
 .freshness--checking .freshness__dot {
@@ -137,18 +160,20 @@
 
 /* When a newer issue is waiting the readout becomes the button that loads it. */
 .freshness--fresh {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--pop);
+  color: var(--ink);
   cursor: pointer;
+  box-shadow: var(--lift-xs);
 }
 
 .freshness--fresh .freshness__dot {
-  background: var(--accent);
+  background: var(--ink);
   animation: pulse-dot 1.2s var(--ease-in-out) infinite;
 }
 
 .freshness--fresh:hover {
-  background: var(--accent-wash);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--lift-sm);
 }
 
 .icon-button {
@@ -157,89 +182,100 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  color: var(--ink-muted);
+  border: var(--line-hair) solid transparent;
+  border-radius: 50%;
+  color: var(--ink-soft);
   transition:
     color var(--dur-fast) var(--ease-out),
     background-color var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out);
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .icon-button:hover {
-  color: var(--ink);
-  background: var(--paper-sunken);
-  border-color: var(--rule);
+  color: var(--ink-inverse);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .icon-button--on {
-  color: var(--accent);
+  color: var(--ink);
+  background: var(--pop);
+  border-color: var(--ink);
+}
+
+.icon-button--on:hover {
+  color: var(--ink);
+  background: var(--pop);
 }
 
 .icon-button__count {
   position: absolute;
-  top: -1px;
-  right: -1px;
-  min-width: 15px;
-  height: 15px;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
   padding: 0 3px;
   display: grid;
   place-items: center;
+  border: 1px solid var(--ink);
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: var(--paper-raised);
+  color: var(--ink-inverse);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 0;
 }
 
-/* Mobile: the sections move to their own scrolling rail under the bar. */
+/* Mobile: the sections move to their own scrolling rail of floating chips. */
 .nav-rail {
   display: none;
-  gap: var(--sp-1);
-  padding: var(--sp-2) var(--shell-pad) var(--sp-3);
+  gap: 6px;
+  padding: var(--sp-3) var(--shell-pad) var(--sp-2);
   overflow-x: auto;
   scrollbar-width: none;
-  border-top: 1px solid var(--rule-hair);
   /* Fading the trailing edge is the only cue that the rail scrolls; without it
      a clipped "Lifestyle" just looks like a layout mistake. */
-  mask-image: linear-gradient(90deg, #000 84%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent);
+  mask-image: linear-gradient(90deg, #000 86%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, #000 86%, transparent);
 }
 
 .nav-rail::-webkit-scrollbar {
   display: none;
 }
 
+ /* :not() matters here — without it this rule sits after the aria-current one
+    at equal specificity and paints the active chip white on white. */
+.nav-rail .nav__link:not([aria-current='page']) {
+  border-color: var(--ink);
+  background: var(--panel);
+  box-shadow: var(--lift-xs);
+}
+
 /* ---------------------------------------------------------------------------
  * Pull to refresh
  * ------------------------------------------------------------------------- */
 
-/* Sits above the masthead so it reads as chrome floating over the page, and
-   starts fully off the top edge: the translate is the pull distance minus its
-   own height, so travel maps one-to-one onto the thumb. */
 .pull {
   position: fixed;
-  /* Anchored below the bar so the badge emerges from behind the masthead and
-     travels over the ticker, rather than parking on top of the section labels. */
-  top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 4px);
+  top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 10px);
   left: 50%;
   z-index: 70;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 15px;
+  border: var(--line) solid var(--ink);
   border-radius: var(--radius-pill);
-  background: var(--paper-raised);
-  border: 1px solid var(--rule-strong);
-  box-shadow: 0 8px 22px -12px rgba(20, 18, 15, 0.3);
+  background: var(--panel);
+  box-shadow: var(--lift-sm);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 500;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: var(--ink-soft);
   white-space: nowrap;
   pointer-events: none;
   opacity: var(--pull-progress, 0);
@@ -247,8 +283,8 @@
 }
 
 .pull--armed {
+  background: var(--pop);
   color: var(--ink);
-  border-color: var(--ink);
 }
 
 .pull--busy {
@@ -259,16 +295,17 @@
 }
 
 .pull__dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--ink);
   border-radius: 50%;
   flex: none;
-  background: var(--ink-faint);
+  background: var(--panel-deep);
   transition: background-color var(--dur-fast) var(--ease-out);
 }
 
 .pull--armed .pull__dot {
-  background: var(--accent);
+  background: var(--ink);
 }
 
 .pull--busy .pull__dot {
@@ -277,7 +314,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Ticker
+ * Ticker — an inked strip, floating like everything else
  * ------------------------------------------------------------------------- */
 
 .ticker {
@@ -286,8 +323,12 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  border-bottom: 1px solid var(--rule);
-  background: var(--paper-raised);
+  width: min(var(--shell-max), calc(100% - var(--shell-pad) * 2));
+  margin: var(--sp-2) auto var(--sp-5);
+  background: var(--ink);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--lift-sm);
 }
 
 .ticker__label {
@@ -296,12 +337,14 @@
   align-self: stretch;
   display: flex;
   align-items: center;
-  padding: 0 var(--sp-4) 0 var(--shell-pad);
-  background: var(--ink);
-  color: var(--paper);
+  padding: 0 var(--sp-4);
+  background: var(--pop);
+  color: var(--ink);
+  border-right: var(--line) solid var(--ink);
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
 }
@@ -313,8 +356,8 @@
      target instead of a 21px sliver. */
   align-self: stretch;
   overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 28px, #000 92%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 24px, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 24px, #000 94%, transparent);
 }
 
 .ticker__track {
@@ -346,13 +389,13 @@
   gap: var(--sp-3);
   padding: 0 var(--sp-4);
   font-size: var(--step-small);
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.82);
   white-space: nowrap;
   transition: color var(--dur-fast) var(--ease-out);
 }
 
 .ticker__item:hover {
-  color: var(--ink);
+  color: var(--ink-inverse);
 }
 
 .ticker__item::after {
@@ -361,16 +404,16 @@
   height: 4px;
   margin-left: var(--sp-3);
   border-radius: 50%;
-  background: var(--rule-strong);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .ticker__topic {
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ticker-accent, var(--ink-faint));
+  color: var(--ticker-accent, var(--pop));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -392,70 +435,81 @@
   animation: fade var(--dur-base) var(--ease-out) both;
 }
 
-/* Topic landing strip: sets the section's terms before any story. */
+/* Topic landing strip: a flat colour cel that states the section's terms. */
 .topic-intro {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--sp-6);
   flex-wrap: wrap;
-  padding: var(--sp-7) 0 var(--sp-5);
-  border-bottom: 2px solid var(--ink);
+  margin-top: var(--sp-2);
+  padding: var(--sp-5) var(--sp-6);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift);
+  background-color: var(--accent);
+  background-image: var(--halftone);
+  background-size: 13px 13px;
+  color: var(--ink-inverse);
 }
 
 .topic-intro__title {
   font-size: var(--step-display-l);
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-3);
-}
-
-.topic-intro__title::before {
-  content: '';
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex: none;
+  text-transform: uppercase;
+  color: var(--ink-inverse);
+  text-shadow: 3px 3px 0 rgba(13, 13, 20, 0.5);
 }
 
 .topic-intro__blurb {
   max-width: 46ch;
-  color: var(--ink-muted);
+  color: rgba(255, 255, 255, 0.92);
   font-size: var(--step-dek);
 }
 
 .topic-intro__stat {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  letter-spacing: var(--tracking-meta);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: var(--ink-soft);
   text-align: right;
 }
 
-/* Section divider: label, hairline that eats the remaining width, count. */
+/* Section divider: an inked label chip, a rule, a count. */
 .section-rule {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  padding: var(--sp-8) 0 var(--sp-5);
+  padding: var(--sp-7) 0 var(--sp-5);
 }
 
 .section-rule__label {
   flex: none;
+  padding: 5px 11px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--ink-inverse);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
-  color: var(--ink);
+  box-shadow: var(--lift-xs);
 }
 
 .section-rule__line {
   flex: 1;
-  height: 1px;
-  background: var(--rule);
+  height: var(--line);
+  background: var(--ink);
+  opacity: 0.18;
 }
 
 .section-rule__note {
@@ -464,11 +518,12 @@
   font-size: var(--step-meta);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-muted);
 }
 
 .section-rule__note a {
   color: var(--accent);
+  font-weight: 500;
   /* Grown for thumbs, then pulled back so the rule still meets the label. */
   padding: 9px 0 9px 9px;
   margin: -9px 0;
@@ -493,60 +548,61 @@
 
 .front-top {
   display: grid;
-  grid-template-columns: minmax(0, 1.68fr) minmax(0, 1fr);
-  gap: 0;
-  padding-top: var(--sp-6);
+  grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+  padding-top: var(--sp-2);
+  align-items: start;
 }
 
-.front-top__lead {
-  padding-right: var(--sp-7);
-  padding-bottom: var(--sp-7);
-}
-
-/* The right rail is a stack of rows divided by hairlines, like a print
-   sidebar — no cards, no boxes. */
+/* The rail is one cel holding a ruled list, rather than five small cels. */
 .front-top__rail {
-  border-left: 1px solid var(--rule);
-  padding-left: var(--sp-6);
-  padding-bottom: var(--sp-7);
+  padding: var(--sp-5);
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-sm);
   display: flex;
   flex-direction: column;
 }
 
 .rail-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
   color: var(--ink);
-  padding-bottom: var(--sp-4);
-  border-bottom: 2px solid var(--ink);
-  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: var(--line) solid var(--ink);
+  margin-bottom: var(--sp-3);
+}
+
+.rail-heading::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 /*
- * Ruled grids. Column counts are fixed per breakpoint rather than auto-fill so
- * the vertical rules always land in the right places.
- *
- * The container is pulled outwards by exactly one gutter so that every cell can
- * carry identical padding while the outer edges still sit flush with the page
- * margin. Zeroing the padding on the edge cells instead would make them wider
- * than their neighbours, and since the artwork is sized by aspect ratio, a
- * wider cell is a taller cell — which knocks every headline in the row off a
- * shared baseline. Equal cells are what keep a row reading as one row.
+ * Card grids. Every cell is its own floating cel now, so the grid is plain
+ * gaps — the old vertical hairlines and the outward negative margin that made
+ * them line up are both gone.
  */
 .grid {
-  --grid-gutter: var(--sp-5);
   display: grid;
-  gap: var(--sp-7) 0;
-  margin-inline: calc(var(--grid-gutter) * -1);
+  gap: var(--sp-5);
+  align-items: start;
 }
 
 .grid > * {
   min-width: 0;
-  padding-inline: var(--grid-gutter);
-  border-left: 1px solid var(--rule);
 }
 
 .grid--3 {
@@ -557,9 +613,44 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.grid--3 > *:nth-child(3n + 1),
-.grid--4 > *:nth-child(4n + 1) {
-  border-left: 0;
+/* ---------------------------------------------------------------------------
+ * Video rail — creator uploads under a section's reporting
+ * ------------------------------------------------------------------------- */
+
+/*
+ * A horizontal scroller rather than another grid, because these are a sidebar
+ * to the news and should not compete with it for vertical space. Scroll
+ * snapping makes it feel like a shelf being flicked through.
+ */
+.vrail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(248px, 1fr);
+  gap: var(--sp-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* Room for the offset shadows and the hover lift, which would otherwise be
+     clipped by the scroll container. */
+  padding: 4px 4px 12px;
+  margin: -4px -4px -12px;
+}
+
+.vrail::-webkit-scrollbar {
+  display: none;
+}
+
+.vrail > * {
+  scroll-snap-align: start;
+}
+
+@media (min-width: 901px) {
+  /* With the room for it, four across reads as a shelf rather than a queue. */
+  .vrail {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow-x: visible;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -567,13 +658,19 @@
  * ------------------------------------------------------------------------- */
 
 .state {
-  padding: var(--sp-9) 0;
-  max-width: 46ch;
+  padding: var(--sp-7);
+  margin-top: var(--sp-5);
+  max-width: 52ch;
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift);
 }
 
 .state__title {
   font-size: var(--step-display-m);
   margin-bottom: var(--sp-3);
+  text-transform: uppercase;
 }
 
 .state__body {
@@ -581,45 +678,49 @@
   margin-bottom: var(--sp-5);
 }
 
+/* The comic button: inked, filled, and it presses in when clicked. */
 .button {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 11px 19px;
+  padding: 11px 18px;
+  border: var(--line) solid var(--ink);
   border-radius: var(--radius-pill);
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: var(--ink-inverse);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
-  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast);
+  box-shadow: var(--lift-sm);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .button:hover {
-  transform: translateY(-1px);
-  opacity: 0.9;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--lift);
+}
+
+.button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .button--ghost {
-  background: transparent;
+  background: var(--panel);
   color: var(--ink);
-  border: 1px solid var(--rule-strong);
-}
-
-.button--ghost:hover {
-  border-color: var(--ink);
-  background: var(--paper-sunken);
 }
 
 /* Skeletons mirror the real card geometry so first paint does not jump. */
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--paper-sunken) 0%,
-    color-mix(in srgb, var(--paper-sunken) 55%, var(--paper-raised)) 50%,
-    var(--paper-sunken) 100%
+    var(--panel-sunken) 0%,
+    var(--panel) 50%,
+    var(--panel-sunken) 100%
   );
   background-size: 220% 100%;
   animation: shimmer 1.5s var(--ease-in-out) infinite;
@@ -638,7 +739,7 @@
 .skeleton--image {
   aspect-ratio: 3 / 2;
   width: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .skeleton--line {
@@ -651,11 +752,12 @@
  * ------------------------------------------------------------------------- */
 
 .footer {
-  border-top: 1px solid var(--rule);
+  border-top: var(--line) solid var(--ink);
   /* Clear the home indicator on a gesture-navigation phone. */
-  padding: var(--sp-7) 0 calc(var(--sp-8) + env(safe-area-inset-bottom, 0px));
+  padding: var(--sp-6) 0 calc(var(--sp-7) + env(safe-area-inset-bottom, 0px));
   margin-top: auto;
-  background: var(--paper-raised);
+  background: var(--ink);
+  color: var(--ink-inverse);
 }
 
 .footer__grid {
@@ -666,10 +768,15 @@
   align-items: flex-start;
 }
 
+/* .meta is tuned for dark-on-white; on the inked footer it needs inverting. */
+.footer .meta {
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .footer__note {
   max-width: 42ch;
   font-size: var(--step-small);
-  color: var(--ink-muted);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .footer__links {
@@ -683,14 +790,14 @@
   font-size: var(--step-meta);
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: rgba(255, 255, 255, 0.72);
   /* Small type still needs a thumb-sized target. */
   padding-block: 10px;
   transition: color var(--dur-fast) var(--ease-out);
 }
 
 .footer__links a:hover {
-  color: var(--ink);
+  color: var(--pop);
 }
 
 /* ---------------------------------------------------------------------------
@@ -700,12 +807,6 @@
 @media (max-width: 1080px) {
   .grid--4 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .grid--4 > *:nth-child(4n + 1) {
-    border-left: 1px solid var(--rule);
-  }
-  .grid--4 > *:nth-child(3n + 1) {
-    border-left: 0;
   }
 }
 
@@ -726,38 +827,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .front-top__lead {
-    padding-right: 0;
-    padding-bottom: var(--sp-6);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .front-top__rail {
-    border-left: 0;
-    padding-left: 0;
-    padding-top: var(--sp-6);
-  }
-
-  .grid {
-    --grid-gutter: var(--sp-4);
-  }
-
   .grid--3,
   .grid--4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grid > * {
-    border-left: 1px solid var(--rule);
-  }
-
-  .grid--3 > *:nth-child(2n + 1),
-  .grid--4 > *:nth-child(2n + 1) {
-    border-left: 0;
-  }
-
-  .ticker__label {
-    padding-left: var(--shell-pad);
   }
 }
 
@@ -765,32 +837,18 @@
   .grid--3,
   .grid--4 {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  /* One column: rules turn horizontal, the outward pull is no longer needed,
-     and the whole thing reads as a column of stories rather than a grid. */
-  .grid {
-    margin-inline: 0;
-  }
-
-  .grid > * {
-    border-left: 0 !important;
-    padding-inline: 0;
-    padding-block: var(--sp-5);
-    border-top: 1px solid var(--rule);
-  }
-
-  .grid > *:first-child {
-    border-top: 0;
-    padding-top: 0;
   }
 
   .topic-intro {
-    padding-top: var(--sp-6);
+    padding: var(--sp-5);
   }
 
   .section-rule {
-    padding-top: var(--sp-7);
+    padding-top: var(--sp-6);
+  }
+
+  .masthead__bar {
+    gap: var(--sp-2);
+    padding-inline: var(--sp-2);
   }
 }

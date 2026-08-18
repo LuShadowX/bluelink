@@ -1,6 +1,6 @@
 # BlueLink
 
-An editorial news reader for tech, AI, sport, games and lifestyle.
+An editorial news reader for tech, AI, sport, games, lifestyle and YouTube.
 
 ## Quick start
 
@@ -17,19 +17,21 @@ JSON in `public/data/` for the app to read.
 ## How it works
 
 BlueLink is a static app in front of a static payload. A Node pipeline (`scripts/fetch-news.mjs`)
-reads the feed list in `scripts/feeds.json`, requests all 43 RSS feeds server-side, normalises
-and de-duplicates the items, and writes one JSON file per topic into `public/data/` alongside an
+reads the feed list in `scripts/feeds.json`, requests every RSS feed and every curated YouTube
+channel feed server-side, normalises and de-duplicates the items, keeps the best twenty per
+section, then reads each of those article pages to recover the artwork and the opening paragraphs
+the feed withheld. The result is one JSON file per section in `public/data/` alongside an
 `index.json` manifest. The browser only ever fetches those files from BlueLink's own origin, so
 there is no CORS proxy to keep alive, no API key to rotate and no per-visitor rate limit to hit —
 a thousand readers cost the publishers a single request. It also isolates failure: because each
 topic is written independently and the manifest records a `failures[]` list, one publisher going
 down degrades a single section rather than breaking the app.
 
-## The six-hour refresh
+## The four-hour refresh
 
-News refreshes automatically every six hours, in three layers:
+News refreshes automatically every four hours, in three layers:
 
-1. **Scheduled fetch.** `.github/workflows/refresh-news.yml` runs on a `0 */6 * * *` cron, runs
+1. **Scheduled fetch.** `.github/workflows/refresh-news.yml` runs on a `0 */4 * * *` cron, runs
    the pipeline, and commits `public/data` back to the branch. In practice that is a commit every
    run, because `generatedAt` is restamped each time — deliberately, since the client reads that
    timestamp as the age of the edition and one that stopped advancing would leave every open tab
@@ -38,10 +40,10 @@ News refreshes automatically every six hours, in three layers:
    (`workflow_run`) as well as pushes to `main`, then rebuilds and republishes to GitHub Pages.
    The fresh JSON is live without anyone pressing a button.
 3. **Client-side revalidation.** The app compares `generatedAt` in `index.json` against a
-   six-hour window and re-fetches in the background when the payload is stale, so a tab left open
+   four-hour window and re-fetches in the background when the payload is stale, so a tab left open
    overnight catches up on its own instead of showing yesterday's front page.
 
-For local development, `npm run news:watch` runs the same fetch immediately and then every six
+For local development, `npm run news:watch` runs the same fetch immediately and then every four
 hours, logging the next scheduled run. Leave it in a second terminal beside `npm run dev`.
 
 ## Installing on a phone
@@ -58,7 +60,7 @@ opens straight into the front page. It reads offline from the last edition it do
 pulling down at the top of the page refreshes it.
 
 The install metadata lives in `public/manifest.webmanifest`: a standalone display mode,
-portrait-primary orientation, the paper-white `#F7F5F0` used for both the theme and the launch
+portrait-primary orientation, the white `#FFFFFF` used for both the theme and the launch
 background, and shortcuts that jump directly to Tech, AI, Sports, Games and Saved.
 
 ## Offline behaviour
@@ -68,7 +70,7 @@ caching strategy per resource type rather than applying one rule to everything.
 
 | Resource | Strategy | Why |
 | --- | --- | --- |
-| Navigation and `data/*.json` | Network-first | A fresh edition must always win over a cached one. Serving these from cache first would defeat the six-hour refresh. |
+| Navigation and `data/*.json` | Network-first | A fresh edition must always win over a cached one. Serving these from cache first would defeat the four-hour refresh. |
 | `assets/*` and icons | Cache-first | Vite content-hashes these filenames, so a given URL is immutable and can be served from cache without a check. |
 | Google Fonts, publisher images | Stale-while-revalidate | Shown immediately, updated in the background. The image cache is capped at 80 entries because cross-origin image responses are opaque and are padded when counted against the storage quota. |
 
@@ -112,42 +114,65 @@ edition and adopts it in the same gesture — a deliberate pull is the reader as
 | `npm run build` | Type-check with `tsc --noEmit`, then build to `dist/`. |
 | `npm run preview` | Serve the built `dist/` output locally to check a production build. |
 | `npm run news` | Fetch all feeds once and write `public/data/*.json`. |
-| `npm run news:watch` | Fetch now, then re-fetch every six hours until stopped. |
+| `npm run news:watch` | Fetch now, then re-fetch every four hours until stopped. |
 | `npm start` | `npm run news` followed by `npm run dev`. |
 | `npm run typecheck` | Type-check only, no build output. |
 
 ## Sources
 
-All 43 feeds are verified live — the most recent pipeline run completed with an empty
+Every feed is verified live — the most recent pipeline run completed with an empty
 `failures[]` list.
 
-| Topic | Publishers |
-| --- | --- |
-| Tech | 9 |
-| AI | 8 |
-| Sports | 7 |
-| Games | 9 |
-| Lifestyle | 10 |
+| Section | News feeds | YouTube channels |
+| --- | --- | --- |
+| Tech | 11 | 9 |
+| AI | 11 | 9 |
+| Sports | 8 | 7 |
+| Games | 9 | 7 |
+| Lifestyle | 12 | 8 |
+| YouTube | — | 11 |
 
-The full list of feed URLs lives in `scripts/feeds.json`.
+Each feed carries a `tier`: 1 for a major newsroom or the primary source itself, 2 for a
+specialist desk, 3 for something looser. Tier feeds the ranking as a tie-breaker, so a
+close call goes to the more reliable byline — and one publisher can hold at most five of a
+section's twenty slots, keeping a section a survey rather than a syndication feed.
+
+The full list of feed URLs and channel IDs lives in `scripts/feeds.json`.
+
+## Sections, videos and artwork
+
+- **Twenty per section.** A section you can finish reading beats an endless scroll, and it
+  is few enough that every kept story can be enriched by fetching its page.
+- **Real artwork.** Feed image → the page's own `og:image` → an openly licensed photograph
+  of the same subject from Openverse, credited as a related picture rather than passed off
+  as the publisher's own → a drawn fallback plate. The last run put artwork on 100 of 100.
+- **A real excerpt.** Each story carries `body[]`: a few paragraphs mined from the article
+  page, or from the feed's own `content:encoded` for the publishers that refuse a server
+  fetch. Opening a story gives you something to read before the link out.
+- **YouTube.** Each section gets a rail of new uploads from curated creators, and the
+  YouTube board ranks everything by views-per-hour — what is actually moving now, rather
+  than whichever channel is biggest. Shorts are detected and dropped, and a video plays
+  inside the reader without loading anything from YouTube until it is tapped.
 
 ## Project structure
 
 ```
 scripts/
-  fetch-news.mjs      RSS pipeline: fetch, normalise, write public/data
-  feeds.json          The 43 feeds, grouped by topic
-  watch-news.mjs      Local 6-hour scheduler for development
+  fetch-news.mjs      Pipeline: collect, select, enrich, write public/data
+  feeds.json          Feeds by section, plus the YouTube channel roster
+  watch-news.mjs      Local scheduler for development
   icon-source.svg     Source of truth for every app icon
 src/
   config/             Topic definitions: labels, kickers, accent colours
-  styles/             Design tokens and base stylesheet
-  lib/                Data loading, the six-hour refresh, routing, formatting,
+  styles/             Design tokens, base, cards, layout, overlays
+  lib/                Data loading, the four-hour refresh, routing, formatting,
                       pull-to-refresh, service worker registration
-  components/         Masthead, ticker, cards, reader, search, pull indicator
+  components/         Masthead, ticker, cards, reader, search, pull indicator,
+                      the animated X backdrop
   pages/              Front page, topic page, saved list
 public/
-  data/               Generated JSON — one file per topic, plus index.json
+  data/               Generated JSON — one file per section (youtube.json
+                      included), plus index.json
   icons/              App icons rasterised from scripts/icon-source.svg
   manifest.webmanifest  Web app manifest: name, display mode, shortcuts
   sw.js               Service worker: precache and per-resource caching
@@ -173,7 +198,7 @@ shipping app, and there is no APK or IPA.
 
 - **`VITE_DATA_ORIGIN`.** A native build must set this to the live site. Capacitor bundles the web
   assets into the app, so a relative fetch would read the copy of `public/data/` frozen at build
-  time forever: the six-hour refresh would appear to run and silently change nothing. Pointing the
+  time forever: the four-hour refresh would appear to run and silently change nothing. Pointing the
   data origin at the deployed site keeps the payload live while the shell stays static.
 - **`openExternal()`.** Publisher links are routed through the Capacitor Browser plugin when it is
   present, falling back to normal browser behaviour when it is not. Inside a WebView a plain

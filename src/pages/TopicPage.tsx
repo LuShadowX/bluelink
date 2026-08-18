@@ -10,6 +10,8 @@ import { StorySkeleton } from '../components/StorySkeleton'
 interface Props {
   topic: Topic
   articles: Article[] | undefined
+  /** Creator uploads for this section. Empty on the YouTube board itself. */
+  videos: Article[] | undefined
   savedIds: Set<string>
   now: number
   onRequest: () => void
@@ -20,6 +22,7 @@ interface Props {
 export function TopicPage({
   topic,
   articles,
+  videos,
   savedIds,
   now,
   onRequest,
@@ -36,6 +39,7 @@ export function TopicPage({
   const features = rest.slice(0, 3)
   const latest = rest.slice(3)
   const sources = new Set((articles ?? []).map((a) => a.source)).size
+  const uploads = videos ?? []
 
   return (
     <div className="page shell" style={accent(topic)} key={topic.id}>
@@ -48,7 +52,9 @@ export function TopicPage({
         </div>
         {articles && articles.length > 0 && (
           <p className="topic-intro__stat">
-            {articles.length} stories · {sources} publishers
+            {topic.video
+              ? `${articles.length} videos · ${sources} channels`
+              : `${articles.length} stories · ${sources} publishers`}
             {lead && (
               <>
                 <br />
@@ -68,7 +74,7 @@ export function TopicPage({
           <h2 className="state__title">Nothing in this section yet</h2>
           <p className="state__body">
             The {topic.label} feeds came back empty on the last run. The next refresh is
-            within six hours, and this page will fill itself in.
+            within four hours, and this page will fill itself in.
           </p>
         </div>
       ) : (
@@ -105,9 +111,32 @@ export function TopicPage({
             </>
           )}
 
+          {uploads.length > 0 && (
+            <>
+              <SectionRule
+                label="On YouTube"
+                note={`${uploads.length} new from creators`}
+              />
+              <div className="vrail">
+                {uploads.map((video) => (
+                  <ArticleCard
+                    key={video.id}
+                    article={video}
+                    variant="standard"
+                    saved={savedIds.has(video.id)}
+                    {...shared}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
           {latest.length > 0 && (
             <>
-              <SectionRule label="Everything else" note={`${latest.length} stories`} />
+              <SectionRule
+                label="Everything else"
+                note={`${latest.length} ${topic.video ? 'videos' : 'stories'}`}
+              />
               <div className="grid grid--4">
                 {latest.map((article) => (
                   <ArticleCard

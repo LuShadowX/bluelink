@@ -5,8 +5,7 @@
 .story-image {
   position: relative;
   overflow: hidden;
-  background: var(--paper-sunken);
-  border-radius: var(--radius-md);
+  background: var(--panel-sunken);
   isolation: isolate;
 }
 
@@ -15,7 +14,7 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transform: scale(1.008);
+  transform: scale(1.01);
   transition:
     opacity var(--dur-slow) var(--ease-out),
     transform var(--dur-slow) var(--ease-out);
@@ -25,46 +24,37 @@
   opacity: 1;
 }
 
-/* A very slight warm multiply keeps stock press photography from clashing with
-   the paper ground — five publishers' colour grading in one grid otherwise
-   looks like five different websites. */
-.story-image::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(20, 18, 15, 0) 62%, rgba(20, 18, 15, 0.09));
-  mix-blend-mode: multiply;
-}
-
 .card__link:hover .story-image__img--in {
-  transform: scale(1.045);
+  transform: scale(1.05);
 }
 
-/* Fallback well: the topic's initial set large in the display face. Reads as a
-   deliberate plate rather than a broken image. */
+/*
+ * Fallback plate: the section's initial, huge, on a halftone screen in the
+ * section colour. Two stories in twenty land here, and they have to look drawn
+ * on purpose rather than broken — a comic page has flat colour panels too.
+ */
 .story-image__fallback {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  background:
-    radial-gradient(120% 120% at 30% 10%, var(--accent-wash), transparent 70%),
-    var(--paper-sunken);
+  background-color: var(--accent);
+  background-image: var(--halftone);
+  background-size: 11px 11px;
 }
 
 .story-image__fallback span {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 12cqw, 5rem);
+  font-family: var(--font-poster);
+  font-size: clamp(2.4rem, 14cqw, 6rem);
   line-height: 1;
-  color: var(--accent);
-  opacity: 0.32;
+  color: var(--ink-inverse);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
   user-select: none;
 }
 
 /* ---------------------------------------------------------------------------
- * Card shell
+ * Card shell — every card is a cel: white stock, inked edge, offset shadow.
  * ------------------------------------------------------------------------- */
 
 .card {
@@ -73,6 +63,22 @@
   flex-direction: column;
   min-width: 0;
   container-type: inline-size;
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-sm);
+  overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* Lifting on hover is the one place the offset shadow earns its keep: the card
+   moves up and left, the shadow grows, and the whole thing reads as a physical
+   cel being picked up off the page. */
+.card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--lift);
 }
 
 .card__link {
@@ -80,10 +86,14 @@
   flex-direction: column;
   gap: var(--sp-4);
   min-width: 0;
+  height: 100%;
 }
 
 .card__media {
   position: relative;
+  /* The inked rule between plate and text is what makes it a panel edge rather
+     than a photo with a caption. */
+  border-bottom: var(--line) solid var(--ink);
 }
 
 .card__body {
@@ -91,29 +101,42 @@
   flex-direction: column;
   gap: var(--sp-3);
   min-width: 0;
+  padding: 0 var(--sp-4) var(--sp-4);
 }
 
 .card__meta {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   flex-wrap: wrap;
+  /* Fixed height so the row of headlines beside this one shares a baseline. The
+     chips are not all the same size — the "New" flash is set smaller than the
+     section tag — and letting the row size itself put neighbouring headlines 3px
+     out of alignment. */
+  min-height: 21px;
 }
 
+/* The section kicker is a caption box in the section colour. */
 .card__kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--ink-inverse);
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   font-weight: 500;
-  letter-spacing: var(--tracking-meta);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--accent);
 }
 
 .card__time,
 .card__source {
   font-family: var(--font-mono);
   font-size: var(--step-meta);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
@@ -123,22 +146,23 @@
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: var(--rule-strong);
+  background: var(--ink-faint);
   flex: none;
 }
 
-/* Freshly landed stories earn a small flag; everything else stays quiet. */
+/* Freshly landed stories earn a flash in comic yellow. */
 .card__new {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 2px 7px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--paper-raised);
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--pop);
+  color: var(--ink);
   font-family: var(--font-mono);
   font-size: 9px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -158,12 +182,90 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  margin-top: var(--sp-1);
+  margin-top: auto;
+  padding-top: var(--sp-1);
   font-size: var(--step-meta);
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+/* ---- Video affordances ------------------------------------------------- */
+
+/*
+ * A video plate needs to say "video" before anything is read, so it gets the
+ * one circular element in the whole design — outlined in ink, filled in the
+ * section colour, and bobbing very slightly so it reads as a control.
+ */
+.card__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: var(--line) solid var(--ink);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--ink-inverse);
+  box-shadow: var(--lift-sm);
+  transition:
+    transform var(--dur-fast) var(--ease-snap),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.card__link:hover .card__play {
+  transform: translate(-50%, -50%) scale(1.12);
+  background: var(--ink);
+}
+
+.card--row .card__play,
+.card--standard .card__play {
+  width: 38px;
+  height: 38px;
+}
+
+/* Channel and view count, on the plate rather than under it: a video's
+   provenance is part of the thumbnail everywhere else on the internet. */
+.card__vmeta {
+  position: absolute;
+  left: var(--sp-2);
+  bottom: var(--sp-2);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - var(--sp-4));
+}
+
+.card__channel,
+.card__views {
+  /* Without min-width:0 a flex item refuses to shrink below its content, so the
+     channel name is clipped mid-letter instead of ellipsised. */
+  min-width: 0;
+  padding: 2px 6px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--ink-inverse);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__views {
+  background: var(--pop);
+  color: var(--ink);
+  flex: none;
 }
 
 /* ---- Save control ---- */
@@ -177,17 +279,18 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--paper-raised) 88%, transparent);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  border: var(--line-hair) solid var(--ink);
+  border-radius: 50%;
+  background: var(--panel);
   color: var(--ink-soft);
+  box-shadow: var(--lift-xs);
   opacity: 0;
   transform: translateY(-3px);
   transition:
     opacity var(--dur-fast) var(--ease-out),
     transform var(--dur-fast) var(--ease-out),
-    color var(--dur-fast) var(--ease-out);
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 
 .card:hover .card__save,
@@ -198,11 +301,13 @@
 }
 
 .card__save--on {
-  color: var(--accent);
+  background: var(--pop);
+  color: var(--ink);
 }
 
 .card__save:hover {
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--ink-inverse);
 }
 
 /* Nothing to hover on a phone, so the control is simply always there. */
@@ -217,25 +322,71 @@
  * Variants
  * ------------------------------------------------------------------------- */
 
-/* Lead — one per page, carries the whole front page. The plate and headline are
-   sized together so that the summary and byline still clear a laptop fold; a
-   lead you have to scroll to finish reading is just a poster. */
+/*
+ * Lead — one per page, and the only card allowed to be loud: the section colour
+ * fills the whole cel, the headline goes reversed out of it, and the plate sits
+ * inside its own inked frame like the splash panel of a comic page.
+ */
+.card--lead {
+  box-shadow: var(--lift-lg);
+  background-color: var(--accent);
+  background-image: var(--halftone);
+  background-size: 13px 13px;
+  color: var(--ink-inverse);
+}
+
+.card--lead .card__link {
+  gap: 0;
+}
+
+.card--lead .card__media {
+  border-bottom: var(--line) solid var(--ink);
+}
+
 .card--lead .story-image {
-  aspect-ratio: 16 / 9;
+  /*
+   * A fixed height rather than 16:9, because at lead width a true 16:9 plate is
+   * taller than a laptop fold and pushes the headline off the first screen.
+   * Capping it with max-height does not work either: with an aspect-ratio set,
+   * the box narrows to keep the ratio and leaves a gap beside the picture.
+   */
+  height: clamp(220px, 38vh, 400px);
+}
+
+.card--lead .card__body {
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  gap: var(--sp-4);
 }
 
 .card--lead .card__title {
-  font-size: clamp(2.4rem, 4.1vw, 3.9rem);
+  font-size: clamp(1.9rem, 3.4vw, 3.1rem);
+  color: var(--ink-inverse);
+  text-shadow: 3px 3px 0 rgba(13, 13, 20, 0.55);
 }
 
 .card--lead .card__dek {
   font-size: var(--step-dek);
   max-width: 56ch;
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.92);
 }
 
-.card--lead .card__link {
-  gap: var(--sp-5);
+.card--lead .card__kicker {
+  background: var(--pop);
+  color: var(--ink);
+}
+
+.card--lead .card__time,
+.card--lead .card__source,
+.card--lead .card__byline {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.card--lead .card__meta-sep {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.card--lead .headline-link {
+  background-image: linear-gradient(var(--pop), var(--pop));
 }
 
 /* Feature — the second tier. */
@@ -260,10 +411,24 @@
   display: none;
 }
 
-/* Row — sidebar and search results. Text first, small plate on the right. */
+/*
+ * Row — the ranked rail and search results. Rows live inside a panel already,
+ * so they drop the outline and the shadow and become ruled entries; giving each
+ * one its own cel inside a cel is how a comic page turns into a spreadsheet.
+ */
 .card--row {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
   padding-block: var(--sp-4);
-  border-top: 1px solid var(--rule-hair);
+  border-top: var(--line-hair) solid var(--rule);
+}
+
+.card--row:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .card--row:first-of-type {
@@ -281,7 +446,10 @@
 .card--row .card__media {
   flex: none;
   order: 2;
-  width: 82px;
+  width: 84px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
 .card--row .story-image {
@@ -290,37 +458,48 @@
 
 .card--row .card__body {
   gap: var(--sp-2);
+  padding: 0;
 }
 
 .card--row .card__title {
-  font-size: 1.1875rem;
+  font-size: 1.0625rem;
+  line-height: 1.28;
 }
 
-.card--row .card__dek {
+.card--row .card__dek,
+.card--row .card__vmeta {
   display: none;
 }
 
 .card--row .card__save {
   position: static;
   order: 3;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
+  border-color: transparent;
   background: none;
-  backdrop-filter: none;
-  margin-top: -3px;
-  margin-right: -6px;
+  box-shadow: none;
+  margin-top: -2px;
+  margin-right: -4px;
 }
 
-/* An index numeral in the display face, for the ranked rail. */
+.card--row .card__save--on {
+  background: var(--pop);
+  border-color: var(--ink);
+}
+
+/* An index numeral in the poster face, for the ranked rail. */
 .card--row .card__index {
   order: 0;
   flex: none;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--rule-strong);
+  font-family: var(--font-poster);
+  font-size: 1.375rem;
+  line-height: 1.1;
+  color: var(--panel-deep);
+  -webkit-text-stroke: 1px var(--ink);
+  paint-order: stroke fill;
   font-variant-numeric: tabular-nums;
-  min-width: 1.4em;
+  min-width: 1.5em;
 }
 
 .card--row:hover .card__index {
@@ -331,20 +510,9 @@
   transition: color var(--dur-base) var(--ease-out);
 }
 
-/* Quote — an occasional textless card that breaks up a long image grid. */
-.card--statement {
-  justify-content: center;
-  padding: var(--sp-6) 0;
-}
-
-.card--statement .card__title {
-  font-size: var(--step-display-m);
-  font-style: italic;
-}
-
 @container (max-width: 240px) {
   .card--standard .card__title {
-    font-size: 1.1875rem;
+    font-size: 1.0625rem;
   }
 }
 

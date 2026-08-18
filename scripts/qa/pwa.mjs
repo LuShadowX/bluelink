@@ -58,7 +58,7 @@ console.log('\n1. Installability')
   const appleIcon = await p.getAttribute('link[rel="apple-touch-icon"]', 'href')
   ok('apple-touch-icon present (iOS home screen)', !!appleIcon)
   const themeColor = await p.getAttribute('meta[name="theme-color"]', 'content')
-  ok('theme-color set', themeColor === '#F7F5F0', themeColor ?? '')
+  ok('theme-color set', themeColor === '#FFFFFF', themeColor ?? '')
   await ctx.close()
 }
 

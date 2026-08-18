@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 /*
- * Pulse feed pipeline.
+ * BlueLink feed pipeline.
  *
- * Reads scripts/feeds.json, pulls every RSS/Atom feed, normalises the items
- * into one shape, de-duplicates across publishers, and writes static JSON into
- * public/data/. The app itself never talks to a publisher — it reads these
- * files. That keeps the client free of CORS proxies and API keys, and means a
- * publisher going down degrades one section instead of the whole app.
+ * Reads scripts/feeds.json, pulls every RSS/Atom feed plus the public Atom feed
+ * of each curated YouTube channel, normalises everything into one article
+ * shape, de-duplicates across publishers, keeps the best twenty per section,
+ * then enriches those twenty by reading the article page itself. The result is
+ * static JSON in public/data/. The app never talks to a publisher — it reads
+ * these files. That keeps the client free of CORS proxies and API keys, and
+ * means a publisher going down degrades one section instead of the whole app.
+ *
+ * Four stages:
+ *   1. collect   — every news feed and creator feed, in parallel
+ *   2. select    — rank on recency + source tier + completeness, keep 20
+ *   3. enrich    — fetch each kept page for real artwork and a longer excerpt
+ *   4. write     — one file per section, plus index.json and youtube.json
  *
  * Run manually with `npm run news`; in production the GitHub Actions cron in
- * .github/workflows/refresh-news.yml runs it every six hours and commits the
+ * .github/workflows/refresh-news.yml runs it every four hours and commits the
  * result.
  */
 
@@ -31,10 +39,19 @@ const FEED_TIMEOUT_MS = 15_000
 const CONCURRENCY = 8
 /** Anything older than this is stale enough to be noise rather than news. */
 const MAX_AGE_DAYS = 21
-/** Stories kept per topic. Deep enough to scroll, small enough to stay fast. */
-const PER_TOPIC_LIMIT = 60
-/** Roughly 3–4 lines in the reader — enough to be worth reading on its own. */
-const SUMMARY_MAX = 420
+/**
+ * Stories kept per topic. Twenty is a deliberate edit rather than a technical
+ * limit: a section you can finish reading is worth more than an endless scroll,
+ * and it is few enough that every one of them can be enriched by fetching the
+ * page (see enrichArticle) inside a single scheduled run.
+ */
+const PER_TOPIC_LIMIT = 20
+/** Slots one publisher may hold in a section of twenty, before backfill. */
+const PER_SOURCE_CAP = 5
+/** Front-page rotation. Five sections at four each, then the ranking decides. */
+const HIGHLIGHT_LIMIT = 40
+/** The card dek. Two or three lines under a headline. */
+const SUMMARY_MAX = 300
 /**
  * Plain-text ceiling for a candidate body. Past this a field is a full article
  * dump rather than an excerpt, and preferring it would mean truncating from a
@@ -43,6 +60,29 @@ const SUMMARY_MAX = 420
 const SUMMARY_SOURCE_MAX = 4000
 /** A boilerplate rule that would leave less than this is skipped. */
 const SUMMARY_MIN_AFTER_STRIP = 40
+
+// --- Enrichment (stage 3) --------------------------------------------------
+/** Paragraphs of real reporting kept for the reader, beyond the dek. */
+const BODY_MAX_PARAGRAPHS = 4
+const BODY_MAX_CHARS = 1200
+/** A candidate paragraph outside this range is furniture, not prose. */
+const PARAGRAPH_MIN = 60
+const PARAGRAPH_MAX = 700
+/** Page fetches are slower and flakier than feeds, so they run wider. */
+const ENRICH_CONCURRENCY = 10
+const PAGE_TIMEOUT_MS = 14_000
+/** Only the first slice of a page is parsed; article HTML is front-loaded. */
+const PAGE_MAX_BYTES = 600_000
+
+// --- YouTube ---------------------------------------------------------------
+/** Videos shown under a section's news. A rail, not a second feed. */
+const VIDEOS_PER_TOPIC = 8
+/** The trending board. */
+const YOUTUBE_LIMIT = 20
+/** A three-week-old upload is not what is trending right now. */
+const VIDEO_MAX_AGE_DAYS = 12
+/** How far down the video ranking the Shorts check bothers to look. */
+const SHORTS_CHECK_LIMIT = 120
 
 // ---------------------------------------------------------------------------
 // XML
@@ -97,17 +137,65 @@ function safeCodePoint(code) {
   }
 }
 
+/**
+ * Marks where a block element ended, so joinBlocks can punctuate the seam.
+ *
+ * A NUL is the sentinel because it cannot appear in feed text and cannot be
+ * produced by entity decoding either — safeCodePoint rejects anything below 9
+ * — so splitting on it is unambiguous where splitting on a space would not be.
+ * Written as an escape rather than the character itself, so the file stays
+ * plain text to every tool that reads it.
+ */
+const BLOCK_BREAK = '\u0000'
+
+/**
+ * Rejoin the pieces a block element separated, adding the full stop the markup
+ * was carrying.
+ *
+ * Without this, a publisher whose feed summary is a standfirst followed by the
+ * first paragraph — the Guardian does exactly that — reads as one runaway
+ * sentence: "…products that harm young people More than half of the states…".
+ * The tag was the punctuation, and dropping it silently corrupts the prose.
+ */
+function joinBlocks(input) {
+  const parts = input
+    .split(BLOCK_BREAK)
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+
+  let out = ''
+  for (const part of parts) {
+    if (!out) {
+      out = part
+      continue
+    }
+    out += /[.!?:;,…"”’)\]-]$/.test(out) ? ' ' : '. '
+    out += part
+  }
+  return out
+}
+
 function stripHtml(input) {
-  return decodeEntities(
-    String(input)
-      // Drop whole blocks whose text content is never prose.
-      .replace(/<(script|style|figcaption)[\s\S]*?<\/\1>/gi, ' ')
-      .replace(/<br\s*\/?>/gi, ' ')
-      .replace(/<\/(p|div|li|h[1-6])>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
+  return (
+    joinBlocks(
+      decodeEntities(
+        String(input)
+          // Drop whole blocks whose text content is never prose.
+          .replace(/<(script|style|figcaption)[\s\S]*?<\/\1>/gi, ' ')
+          .replace(/<br\s*\/?>/gi, ' ')
+          .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, BLOCK_BREAK)
+          .replace(/<[^>]+>/g, ' ')
+      )
+    )
+      /*
+       * Reattach a drop cap. Publishers set the opening letter in its own
+       * element, and replacing that element with a space — which every other tag
+       * needs — leaves "B uying a vacuum cleaner". Only the very first letter is
+       * treated this way, and A and I are excluded, because "A quick fix" and
+       * "I went back" are sentences rather than drop caps.
+       */
+      .replace(/^([B-HJ-Z]) (?=[a-z]{2})/, '$1')
   )
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 /** Pull plain text out of a node that may be a string, {#text}, or CDATA. */
@@ -175,6 +263,20 @@ function hash(value) {
   return createHash('sha1').update(value).digest('hex').slice(0, 16)
 }
 
+/**
+ * Comparison form for a block of prose: casing and punctuation removed, length
+ * untouched. Deliberately not titleKey, which caps at 90 characters — fine for
+ * a headline, useless for deciding whether a 400-character paragraph is already
+ * inside the dek.
+ */
+function proseKey(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 /** Titles differ by punctuation and casing across syndication partners. */
 function titleKey(title) {
   return stripHtml(title)
@@ -216,6 +318,10 @@ const BOILERPLATE_RULES = [
   },
   // Trailing attribution: "Source: Foo" / "via Foo".
   { name: 'trailingSource', re: /\s*(?:Source\s*:\s*|[Vv]ia\s+)[A-Z][^.\n]{0,40}\s*$/ },
+  // Two or more bullet-led fragments at the end: a related-links list that lost
+  // its markup on the way through the feed. One bullet is left alone, because a
+  // single one is as likely to be part of the sentence.
+  { name: 'bulletTail', re: /(?:\s*[•·]\s*[^•·]{5,90}){2,}\s*$/ },
 ]
 
 /**
@@ -263,6 +369,20 @@ function pickSummarySource(item) {
     if (plain.length > best.length) best = plain
   }
   return best || oversized
+}
+
+/**
+ * The richest HTML the feed carries, left as markup so paragraph boundaries
+ * survive. `description` is usually a teaser; `content:encoded` is where a
+ * publisher that syndicates properly puts the article.
+ */
+function pickContentHtml(item) {
+  let best = ''
+  for (const candidate of [item['content:encoded'], item.content, item.description, item.summary]) {
+    const html = typeof candidate === 'string' ? candidate : text(candidate)
+    if (html.length > best.length) best = html
+  }
+  return best
 }
 
 /**
@@ -434,10 +554,35 @@ function safeHost(url) {
   }
 }
 
+/**
+ * Commerce and SEO filler that arrives through otherwise excellent feeds:
+ * coupon pages, affiliate deal roundups, horoscopes, live-blog stubs. It is
+ * published by the same newsroom, so tier cannot catch it — only the headline
+ * can. Dropped outright rather than demoted, because a section of twenty has no
+ * room to be charitable.
+ */
+const LOW_VALUE_TITLE = new RegExp(
+  [
+    // Affiliate and commerce
+    'promo code|coupon|discount code|best deals|save \\d+%|\\d+% off|gift guide',
+    '\\bdeals?\\b.*\\b(?:today|week|month|now)\\b',
+    // Shopping roundups: "The best vacuum cleaners in the UK…" is a storefront
+    // with a byline, and it should never lead a technology section.
+    '^(?:the )?best\\b(?=.*\\b(?:for|of|in|under|we tested|tested)\\b)',
+    '\\bbuying guide\\b|\\bworth buying\\b|\\bwhere to buy\\b',
+    // Puzzles, horoscopes and other daily filler
+    'horoscope|\\bsudoku\\b|crossword|word(?:le)? answer|quiz:|puzzle',
+    // Live-blog stubs, which are a page of timestamps rather than a story
+    'as it happened|live updates? —|liveblog|sponsored',
+  ].join('|'),
+  'i'
+)
+
 function normalizeItem(item, feed, topic) {
   const title = stripHtml(text(item.title))
   const url = itemLink(item, feed.url)
   if (!title || !url || title.length < 8) return null
+  if (LOW_VALUE_TITLE.test(title)) return null
 
   const publishedAt = parseDate(
     item.pubDate,
@@ -453,19 +598,37 @@ function normalizeItem(item, feed, topic) {
     SUMMARY_MAX
   )
 
+  /*
+   * Ars Technica, GameSpot and PC Gamer all ship several paragraphs of real
+   * article inside the feed and all three refuse a plain server fetch of the
+   * page, so mining the feed here is not a fallback — for those publishers it
+   * is the only excerpt the reader will ever get. enrichArticle overrides this
+   * later only if the page turns out to give more.
+   */
+  const body = buildBody(htmlParagraphs(pickContentHtml(item)), summary)
+
   const author = stripHtml(
     text(item['dc:creator']) || text(item.author?.name) || text(item.author) || ''
   ).slice(0, 60)
 
+  const image = pickImage(item, feed.url)
+
   return {
     id: hash(dedupeKey(url)),
+    kind: 'article',
     topic,
     title,
     url,
     summary,
-    image: pickImage(item, feed.url),
+    body,
+    image,
+    imageFrom: image ? 'feed' : null,
+    imageCredit: null,
+    imageCreditUrl: null,
     source: feed.name,
     sourceHost: safeHost(url),
+    /** 1 = major newsroom or primary source. Used by rank(), shown as a mark. */
+    tier: Number(feed.tier) || 2,
     author: author && !/^https?:/i.test(author) ? author : '',
     publishedAt,
   }
@@ -475,7 +638,12 @@ function normalizeItem(item, feed, topic) {
 // Fetching
 // ---------------------------------------------------------------------------
 
-async function fetchFeed(feed, topic) {
+/**
+ * `extract` lets a caller take over turning the parsed document into items —
+ * used for YouTube's Atom feed, whose entries carry a video rather than an
+ * article and need their own normaliser.
+ */
+async function fetchFeed(feed, topic, extract) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS)
   try {
@@ -495,6 +663,11 @@ async function fetchFeed(feed, topic) {
     if (!/<(rss|feed|rdf:RDF)/i.test(body)) throw new Error('not a feed')
 
     const doc = parser.parse(body)
+    if (extract) {
+      const items = extract(doc)
+      return { ok: true, feed: feed.name, count: items.length, items }
+    }
+
     const channel = doc?.rss?.channel ?? doc?.['rdf:RDF'] ?? doc?.feed ?? {}
     const rawItems = channel.item ?? channel.entry ?? doc?.feed?.entry ?? []
 
@@ -527,6 +700,441 @@ async function mapLimit(items, limit, worker) {
 }
 
 // ---------------------------------------------------------------------------
+// Enrichment — a feed entry is a teaser; the page is the story.
+//
+// Every kept article is fetched once and mined for two things the feed usually
+// withholds: the real lead artwork (which is why a third of the grid used to
+// show fallback plates) and a few paragraphs of actual reporting, so opening a
+// story gives you something to read instead of a headline and a link.
+//
+// Runs on the final twenty per section only. Enriching everything the feeds
+// return would be ~1,500 requests; enriching the edition is ~120.
+// ---------------------------------------------------------------------------
+
+async function fetchPage(url) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), PAGE_TIMEOUT_MS)
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    })
+    if (!res.ok) return null
+    const type = res.headers.get('content-type') ?? ''
+    if (type && !/html|xml/i.test(type)) return null
+    const body = await res.text()
+    return body.slice(0, PAGE_MAX_BYTES)
+  } catch {
+    // Paywalls, bot walls and timeouts are all normal here. The article simply
+    // keeps whatever the feed gave it.
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** First matching <meta> content for any of `names`, in the order given. */
+function metaContent(html, names) {
+  const tags = html.match(/<meta\b[^>]*>/gi) ?? []
+  for (const name of names) {
+    const wanted = new RegExp(`(?:property|name|itemprop)\\s*=\\s*["']${name}["']`, 'i')
+    for (const tag of tags) {
+      if (!wanted.test(tag)) continue
+      const value = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1]
+      if (value) return decodeEntities(value).trim()
+    }
+  }
+  return ''
+}
+
+function pageImage(html, base) {
+  const meta = metaContent(html, [
+    'og:image:secure_url',
+    'og:image',
+    'twitter:image',
+    'twitter:image:src',
+  ])
+  const candidates = [meta]
+
+  const linked = html.match(/<link[^>]+rel=["']image_src["'][^>]*>/i)?.[0]
+  if (linked) candidates.push(linked.match(/href=["']([^"']+)["']/i)?.[1] ?? '')
+
+  // Schema.org blocks: "image": "…" or "image": { "url": "…" }.
+  for (const match of html.matchAll(/"image"\s*:\s*(?:\{[^{}]*?"url"\s*:\s*)?"([^"]{12,})"/g)) {
+    candidates.push(match[1])
+  }
+
+  // Last resort: the widest-looking <img> in the document body.
+  for (const match of html.matchAll(/<img\b[^>]+?src=["']([^"']{20,})["'][^>]*>/gi)) {
+    candidates.push(match[1])
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    const url = cleanUrl(candidate.replace(/\\\//g, '/'), base)
+    if (url && isUsableImage(url)) return url
+  }
+  return null
+}
+
+/**
+ * Furniture that reads like a sentence but carries no reporting: consent
+ * notices, newsletter pitches, legal tails, share prompts.
+ */
+const JUNK_PARAGRAPH =
+  /(cookies?\b|consent|newsletter|sign\s?up|subscribe|advertisement|all rights reserved|terms of (?:use|service)|privacy policy|follow us on|share this|©\s?\d{4}|enable javascript|ad-?block|you(?:'| a)re reading|this article (?:is|was) (?:originally )?published)/i
+
+function htmlParagraphs(html) {
+  // Everything that is definitely not article prose, removed before matching so
+  // a nav or footer paragraph never wins.
+  const scoped = html
+    .replace(/<(script|style|noscript|template|svg|form|aside|nav|footer|header)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<figcaption[\s\S]*?<\/figcaption>/gi, ' ')
+
+  const seen = new Set()
+  const out = []
+  for (const match of scoped.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const plain = stripBoilerplate(stripHtml(match[1]))
+    if (plain.length < PARAGRAPH_MIN || plain.length > PARAGRAPH_MAX) continue
+    // Real prose ends sentences. Bylines, tags and captions usually do not.
+    if (!/[.!?]["'’”]?$/.test(plain)) continue
+    if (JUNK_PARAGRAPH.test(plain)) continue
+    // A wall of links or a stat block: too few spaces for its length.
+    if (plain.split(' ').length < 12) continue
+    const key = plain.slice(0, 60).toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(plain)
+    if (out.length >= 12) break
+  }
+  return out
+}
+
+/**
+ * Drop anything the dek already said, then keep the opening few paragraphs.
+ *
+ * The containment test matters: plenty of publishers build the feed summary out
+ * of the standfirst *plus* the first paragraph, so a prefix comparison passes
+ * while the reader gets the same sentence twice in a row.
+ */
+function buildBody(paragraphs, summary) {
+  const dek = proseKey(summary)
+  /*
+   * The dek is truncated, so when a publisher builds it out of the standfirst
+   * plus the opening paragraph it ends mid-sentence — and the two prefix tests
+   * below both miss, because the shared text sits at the *end* of the dek and
+   * the *start* of the paragraph. Matching on the dek's tail is what actually
+   * catches it, and without it the reader shows the same sentence twice.
+   */
+  const dekTail = dek.slice(-40)
+  const body = []
+  let total = 0
+  for (const paragraph of paragraphs) {
+    const key = proseKey(paragraph)
+    const opening = key.slice(0, 70)
+    if (dek && opening && (dek.includes(opening) || key.includes(dek.slice(0, 70)))) continue
+    if (dekTail.length >= 24 && key.includes(dekTail)) continue
+    if (total + paragraph.length > BODY_MAX_CHARS && body.length) break
+    body.push(paragraph)
+    total += paragraph.length
+    if (body.length >= BODY_MAX_PARAGRAPHS) break
+  }
+  return body
+}
+
+async function enrichArticle(article) {
+  const html = await fetchPage(article.url)
+  if (!html) return article
+
+  if (!article.image) {
+    const image = pageImage(html, article.url)
+    if (image) {
+      article.image = image
+      article.imageFrom = 'page'
+    }
+  }
+
+  const paragraphs = htmlParagraphs(html)
+
+  // A feed that shipped only a headline gets its dek from the page too.
+  if (article.summary.length < 90) {
+    const better =
+      metaContent(html, ['og:description', 'twitter:description', 'description']) ||
+      paragraphs[0] ||
+      ''
+    const cleaned = truncate(dropEchoedHeadline(stripBoilerplate(better), article.title), SUMMARY_MAX)
+    if (cleaned.length > article.summary.length) article.summary = cleaned
+  }
+
+  /*
+   * Keep whichever excerpt is longer. The page is usually richer, but plenty of
+   * hosts answer a server fetch with a consent wall that is a valid 200 and
+   * contains no article at all — Ars Technica and PC Gamer both do, and both
+   * syndicate several real paragraphs in the feed. Overwriting unconditionally
+   * threw those away.
+   */
+  const fromPage = buildBody(paragraphs, article.summary)
+  const weight = (body) => body.reduce((sum, p) => sum + p.length, 0)
+  if (weight(fromPage) > weight(article.body)) article.body = fromPage
+
+  return article
+}
+
+// --- Related artwork, for the few stories that still have none --------------
+
+const STOPWORDS = new Set(
+  ('the a an and or but for nor of to in on at by from with without as is are was were be been ' +
+    'being it its this that these those his her their our your my not no so than then there here ' +
+    'what which who whom how why when where will would can could should may might must have has had ' +
+    'do does did done say says said new now more most also just after before over under about into ' +
+    'up down out off again once all any both each few other some such only own same too very s t don ' +
+    'you we they he she i me him them us if because while during against between among').split(' ')
+)
+
+/**
+ * Two or three words that name what the story is about. Proper nouns first —
+ * they are the part of a headline a photo search can actually match.
+ */
+function imageKeywords(title) {
+  const words = stripHtml(title).replace(/[^\w\s'’-]/g, ' ').split(/\s+/).filter(Boolean)
+  const proper = []
+  const plain = []
+  for (const [index, word] of words.entries()) {
+    const bare = word.replace(/['’]s$/, '')
+    if (bare.length < 3 || STOPWORDS.has(bare.toLowerCase())) continue
+    // A capitalised word that is not merely the first word of the sentence.
+    if (index > 0 && /^[A-Z]/.test(bare) && !/^[A-Z]+$/.test(bare)) proper.push(bare)
+    else if (/^[A-Z]{2,}$/.test(bare)) proper.push(bare)
+    else plain.push(bare.toLowerCase())
+  }
+  const picked = [...proper.slice(0, 3)]
+  for (const word of plain.sort((a, b) => b.length - a.length)) {
+    if (picked.length >= 3) break
+    picked.push(word)
+  }
+  return picked.join(' ').trim()
+}
+
+/**
+ * Openverse: openly licensed photography, no API key, honest attribution.
+ *
+ * This is the last rung of the ladder and it is deliberately labelled in the
+ * UI as a related picture rather than the publisher's own, because it is not
+ * the story's artwork — it is a photograph of the same subject. Passing it off
+ * as reporting would be a lie; leaving a grey plate in the grid is worse.
+ */
+async function relatedImage(query) {
+  if (!query) return null
+  const attempts = [
+    `size=large&aspect_ratio=wide&category=photograph`,
+    `size=medium&category=photograph`,
+    ``,
+  ]
+  for (const filters of attempts) {
+    const url =
+      `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}` +
+      `&page_size=6&mature=false${filters ? `&${filters}` : ''}`
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+        signal: AbortSignal.timeout(12_000),
+      })
+      if (!res.ok) continue
+      const payload = await res.json()
+      for (const hit of payload?.results ?? []) {
+        const direct = cleanUrl(hit?.url ?? '', 'https://api.openverse.org/')
+        const thumb = cleanUrl(hit?.thumbnail ?? '', 'https://api.openverse.org/')
+        // Prefer the original file when it is large and plainly an image; the
+        // Openverse thumbnail is the reliable fallback.
+        const wide = Number(hit?.width) >= 800
+        const picked = (wide && isUsableImage(direct) && direct) || thumb || direct
+        if (!picked) continue
+        const creator = stripHtml(hit?.creator ?? '').slice(0, 40)
+        const license = String(hit?.license ?? '').toUpperCase()
+        return {
+          image: picked,
+          credit:
+            `Related photo · ${creator || hit?.provider || 'Openverse'}` +
+            (license ? ` (${license})` : ''),
+          creditUrl: cleanUrl(hit?.foreign_landing_url ?? '', 'https://openverse.org/') || null,
+        }
+      }
+    } catch {
+      // Openverse is a courtesy, not a dependency.
+    }
+  }
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// YouTube — the public per-channel Atom feed, no API key
+// ---------------------------------------------------------------------------
+
+/**
+ * Creator descriptions are half pitch: affiliate blocks, merch links, socials,
+ * chapter lists. Keep the sentences before all that starts.
+ */
+const VIDEO_PITCH =
+  /\b(?:affiliate|sponsor(?:ed|s|ship)?|brought to you by|thanks to [A-Z]|discount code|promo code|use code|coupon|\d+% off|free trial|merch|patreon|shop now|pre-?order (?:yours|now|here)|subscribe|follow me|my socials|instagram|twitter|tiktok|check out my|i invented|link (?:below|in the description)|join (?:this channel|my))\b/i
+
+function cleanVideoDescription(raw) {
+  const lines = String(raw ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+  const kept = []
+  for (const line of lines) {
+    if (!line) continue
+    // Chapter list, timestamped rundown, credits block, or a bare link line.
+    if (/^\d{1,2}:\d{2}/.test(line)) break
+    if (/^(?:https?:\/\/|www\.)/i.test(line)) continue
+    if (/^[-–—•*~=_\s]+$/.test(line)) continue
+    if (/^(?:credits?|music|chapters?|timestamps?|filmed|edited|shot on|gear)\b.{0,24}:?$/i.test(line)) break
+    if (VIDEO_PITCH.test(line)) {
+      // Everything from the pitch onwards is promotional; before it, skip.
+      if (kept.length) break
+      continue
+    }
+    // Strip inline URLs but keep the sentence around them.
+    const text = line
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/[\s—–-]+$/, '')
+      .trim()
+    if (text.length < 25) continue
+    kept.push(text)
+    if (kept.join(' ').length > 700) break
+  }
+  return kept
+}
+
+/**
+ * Shorts are a different medium: vertical, seconds long, and with no
+ * description worth reading. They also win any views-per-hour race, so left in
+ * they would take over the trending board.
+ *
+ * The public feed does not say which is which, but the Shorts player does — a
+ * real Short answers /shorts/<id> with 200, while a normal upload redirects to
+ * /watch. One HEAD request per candidate, which is cheap and needs no API key.
+ */
+async function isShort(video) {
+  try {
+    const res = await fetch(`https://www.youtube.com/shorts/${video.videoId}`, {
+      method: 'HEAD',
+      redirect: 'manual',
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(9000),
+    })
+    return res.status === 200
+  } catch {
+    // Unknown: keep it. A missed Short is a smaller failure than a dropped
+    // video, and the length heuristics below still apply.
+    return false
+  }
+}
+
+function normalizeVideo(entry, creator) {
+  const videoId = text(entry['yt:videoId']).trim()
+  const title = stripHtml(text(entry.title))
+  if (!videoId || !/^[\w-]{8,15}$/.test(videoId) || title.length < 4) return null
+
+  const group = entry['media:group'] ?? {}
+  const paragraphs = cleanVideoDescription(decodeEntities(text(group['media:description'])))
+  const summary = truncate(dropEchoedHeadline(paragraphs[0] ?? '', title), SUMMARY_MAX)
+  const views = Number(group['media:community']?.['media:statistics']?.['@_views'] ?? 0)
+  const rating = Number(group['media:community']?.['media:starRating']?.['@_count'] ?? 0)
+  const channel = stripHtml(text(entry.author?.name)) || creator.name
+
+  return {
+    id: hash(`yt:${videoId}`),
+    kind: 'video',
+    topic: creator.topic,
+    title,
+    url: `https://www.youtube.com/watch?v=${videoId}`,
+    summary,
+    body: summary ? paragraphs.slice(1, BODY_MAX_PARAGRAPHS) : paragraphs.slice(0, BODY_MAX_PARAGRAPHS),
+    // Upgraded to the 16:9 master in bestThumbnail once the run knows it exists.
+    image: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    imageFrom: 'video',
+    imageCredit: null,
+    imageCreditUrl: null,
+    source: channel,
+    sourceHost: 'youtube.com',
+    tier: 2,
+    author: channel,
+    publishedAt: parseDate(entry.published, entry.updated),
+    videoId,
+    channel,
+    channelUrl: `https://www.youtube.com/channel/${creator.channelId}`,
+    views: Number.isFinite(views) && views > 0 ? views : null,
+    likes: Number.isFinite(rating) && rating > 0 ? rating : null,
+  }
+}
+
+async function fetchCreator(creator) {
+  const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${creator.channelId}`
+  const result = await fetchFeed({ name: creator.name, url, tier: 2 }, creator.topic, (doc) => {
+    const entries = doc?.feed?.entry ?? []
+    const out = []
+    for (const entry of Array.isArray(entries) ? entries : [entries]) {
+      const video = normalizeVideo(entry, creator)
+      if (video) out.push(video)
+    }
+    return out
+  })
+  return result
+}
+
+/**
+ * hqdefault.jpg always exists but is 4:3 with black bars baked in, which looks
+ * like a bug in a 16:9 card. maxresdefault only exists for HD uploads, so it is
+ * checked rather than assumed.
+ */
+async function bestThumbnail(video) {
+  for (const name of ['maxresdefault', 'hq720']) {
+    const candidate = `https://i.ytimg.com/vi/${video.videoId}/${name}.jpg`
+    try {
+      const res = await fetch(candidate, {
+        method: 'HEAD',
+        headers: { 'User-Agent': USER_AGENT },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (res.ok && Number(res.headers.get('content-length') ?? 1) > 2000) {
+        video.image = candidate
+        return video
+      }
+    } catch {
+      // Fall through to the next name, then to the 4:3 default.
+    }
+  }
+  // mqdefault is small but at least the right shape.
+  video.image = `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
+  return video
+}
+
+/**
+ * What is actually trending: views earned per hour since upload, tempered by a
+ * plain recency term so a modest video published an hour ago can still lead.
+ * Raw view counts alone would pin a 60-million-view MrBeast upload to the top
+ * of the board for a fortnight.
+ */
+function videoScore(video, now) {
+  const published = Date.parse(video.publishedAt ?? '') || now
+  const ageHours = Math.max(1.5, (now - published) / 3600_000)
+  const velocity = video.views ? Math.log10(video.views / ageHours + 1) * 26 : 0
+  const recency = Math.max(0, 60 - ageHours * 0.42)
+  // A clip with no description and a four-word title is filler, whatever its
+  // view count. Something to actually watch and read about ranks above it.
+  const substance = (video.summary.length > 80 ? 6 : video.summary ? 2 : -10) +
+    (video.title.length < 26 ? -8 : 0)
+  return velocity + recency + substance
+}
+
+// ---------------------------------------------------------------------------
 // Selection
 // ---------------------------------------------------------------------------
 
@@ -549,14 +1157,46 @@ function byNewest(a, b) {
 }
 
 /**
- * Ranking for the front page. Recency dominates, but artwork and a real
- * summary count because the lead slot is a large image well: a great story
- * with no picture makes a worse lead than a good story with one.
+ * How much a publisher's reliability is worth in a close call. Deliberately
+ * smaller than the recency term: a tier-1 byline is a tie-breaker, not a
+ * licence to lead the section with yesterday's story.
+ */
+const TIER_BONUS = { 1: 18, 2: 7, 3: 0 }
+
+/**
+ * Which twenty stories a section keeps. Recency still dominates — it is a news
+ * app — but with only twenty slots the other three things that decide whether a
+ * card is worth showing now count too: who reported it, whether there is
+ * artwork, and whether there is enough text to be worth opening.
+ */
+function rank(item, now) {
+  const published = Date.parse(item.publishedAt ?? '') || now - 48 * 3600_000
+  const ageHours = Math.max(0, (now - published) / 3600_000)
+  let score = 120 - Math.min(96, ageHours) * 1.05
+  score += TIER_BONUS[item.tier] ?? 4
+  if (item.image) score += 10
+  if (item.summary.length > 140) score += 8
+  else if (item.summary.length > 60) score += 4
+  // A headline on its own is a link, not a story. Some feeds (Nature's subject
+  // alerts, for one) ship nothing else, and they should lose to anything that
+  // gives the reader something to read.
+  else if (!item.summary) score -= 14
+  if (item.body.length) score += 6
+  // An undated item is being trusted, not measured. Don't let it lead.
+  if (item.dateEstimated) score -= 8
+  return score
+}
+
+/**
+ * Ranking for the front page. As above, but artwork counts for much more —
+ * the lead slot is a large image well, so a great story with no picture makes
+ * a worse lead than a good story with one.
  */
 function prominence(item, now) {
   const published = Date.parse(item.publishedAt ?? '') || now - 48 * 3600_000
   const ageHours = Math.max(0, (now - published) / 3600_000)
   let score = 100 - Math.min(72, ageHours) * 1.15
+  score += (TIER_BONUS[item.tier] ?? 4) * 0.6
   if (item.image) score += 26
   if (item.summary.length > 90) score += 9
   else if (item.summary) score += 4
@@ -587,6 +1227,33 @@ function interleaveByTopic(items, topicOrder) {
   return out
 }
 
+/**
+ * A section of twenty told by three publishers is a syndication feed, not a
+ * survey. So each source gets a quota — keyed on the host rather than the feed
+ * name, because one newsroom often ships four desks; if that leaves the section
+ * short —
+ * because half the newsroom's feed was down, or a section only has four
+ * publishers — the remainder is backfilled in rank order rather than published
+ * thin.
+ */
+function capBySource(items, cap, target, keyOf = (item) => item.sourceHost || item.source) {
+  const used = new Map()
+  const kept = []
+  const overflow = []
+  for (const item of items) {
+    const key = keyOf(item)
+    const count = used.get(key) ?? 0
+    if (count >= cap) {
+      overflow.push(item)
+      continue
+    }
+    used.set(key, count + 1)
+    kept.push(item)
+  }
+  if (kept.length >= target) return kept
+  return [...kept, ...overflow].slice(0, Math.max(target, kept.length))
+}
+
 /** Keeps one prolific publisher from owning a whole screen. */
 function spreadBySource(items, maxRun = 2) {
   const out = []
@@ -607,21 +1274,40 @@ function spreadBySource(items, maxRun = 2) {
 // Main
 // ---------------------------------------------------------------------------
 
+/** The YouTube board is a section in the app but has no RSS newsroom. */
+const VIDEO_TOPIC = 'youtube'
+const REFRESH_HOURS = 4
+
 async function main() {
   const started = Date.now()
   const config = JSON.parse(await readFile(resolve(HERE, 'feeds.json'), 'utf8'))
   const now = Date.now()
+  const generatedAt = new Date(now).toISOString()
   const cutoff = now - MAX_AGE_DAYS * 86_400_000
-  const topicNames = Object.keys(config).filter((k) => k !== 'rejected')
+  const videoCutoff = now - VIDEO_MAX_AGE_DAYS * 86_400_000
+
+  // Keys starting with an underscore are notes for whoever edits the file.
+  const topicNames = Object.keys(config).filter(
+    (key) => !key.startsWith('_') && key !== 'rejected' && key !== 'creators'
+  )
+  const creators = config.creators ?? []
 
   const jobs = []
   for (const topic of topicNames) {
     for (const feed of config[topic]) jobs.push({ topic, feed })
   }
 
-  console.log(`\n  Pulse · pulling ${jobs.length} feeds across ${topicNames.length} topics\n`)
+  console.log(
+    `\n  BlueLink · ${jobs.length} feeds across ${topicNames.length} sections` +
+      ` · ${creators.length} YouTube channels\n`
+  )
 
-  const results = await mapLimit(jobs, CONCURRENCY, ({ feed, topic }) => fetchFeed(feed, topic))
+  // ---- 1. Collect -------------------------------------------------------
+
+  const [results, creatorResults] = await Promise.all([
+    mapLimit(jobs, CONCURRENCY, ({ feed, topic }) => fetchFeed(feed, topic)),
+    mapLimit(creators, CONCURRENCY, (creator) => fetchCreator(creator)),
+  ])
 
   const byTopic = new Map()
   const failures = []
@@ -636,12 +1322,21 @@ async function main() {
     }
   }
 
-  await mkdir(OUT_DIR, { recursive: true })
+  const allVideos = []
+  for (const result of creatorResults) {
+    if (!result.ok) {
+      failures.push(result)
+      continue
+    }
+    for (const video of result.items) {
+      if ((Date.parse(video.publishedAt ?? '') || 0) < videoCutoff) continue
+      allVideos.push(video)
+    }
+  }
 
-  const generatedAt = new Date(now).toISOString()
-  const topicSummaries = []
-  const everything = []
+  // ---- 2. Select --------------------------------------------------------
 
+  const selection = new Map()
   for (const topic of topicNames) {
     const fresh = (byTopic.get(topic) ?? []).filter((item) => {
       const published = Date.parse(item.publishedAt ?? '')
@@ -655,27 +1350,129 @@ async function main() {
       return published >= cutoff
     })
 
-    const ranked = dedupe(fresh).sort(byNewest)
-    const articles = spreadBySource(ranked).slice(0, PER_TOPIC_LIMIT)
+    const ranked = dedupe(fresh).sort((a, b) => rank(b, now) - rank(a, now))
+    const spread = capBySource(ranked, PER_SOURCE_CAP, PER_TOPIC_LIMIT)
+    selection.set(topic, spreadBySource(spread).slice(0, PER_TOPIC_LIMIT))
+  }
+
+  let rankedVideos = dedupe(allVideos).sort((a, b) => videoScore(b, now) - videoScore(a, now))
+
+  // Shorts are checked over the plausible candidates only — the tail of the
+  // ranking is never published, so paying a request for it would be waste.
+  const candidates = rankedVideos.slice(0, SHORTS_CHECK_LIMIT)
+  const shorts = new Set()
+  await mapLimit(candidates, ENRICH_CONCURRENCY, async (video) => {
+    if (await isShort(video)) shorts.add(video.id)
+  })
+  rankedVideos = rankedVideos.filter((video) => !shorts.has(video.id))
+  if (shorts.size) console.log(`  skipped ${shorts.size} Shorts`)
+
+  const videosByTopic = new Map(topicNames.map((topic) => [topic, []]))
+  for (const video of rankedVideos) {
+    videosByTopic.get(video.topic)?.push(video)
+  }
+  for (const topic of topicNames) {
+    videosByTopic.set(
+      topic,
+      // Keyed on the channel: every video shares one host.
+      capBySource(videosByTopic.get(topic), 3, VIDEOS_PER_TOPIC, (v) => v.source).slice(
+        0,
+        VIDEOS_PER_TOPIC
+      )
+    )
+  }
+
+  /*
+   * The trending board draws on every channel, not just the ones tagged
+   * `youtube`, because "what is going on right now" is a cross-section
+   * question — a phone launch review and a Champions League highlight reel are
+   * both on it. Two per channel keeps one prolific uploader from owning it.
+   */
+  const trending = spreadBySource(rankedVideos, 2).slice(0, YOUTUBE_LIMIT)
+
+  // ---- 3. Enrich --------------------------------------------------------
+
+  const kept = topicNames.flatMap((topic) => selection.get(topic))
+  console.log(`  reading ${kept.length} article pages for artwork and excerpts…`)
+  await mapLimit(kept, ENRICH_CONCURRENCY, (article) => enrichArticle(article))
+
+  // Whatever still has no artwork gets an openly licensed photograph of the
+  // same subject, labelled as such. Far fewer requests than it looks: by this
+  // point almost everything has a real image.
+  const stillBare = kept.filter((article) => !article.image)
+  if (stillBare.length) {
+    console.log(`  looking up related artwork for ${stillBare.length} story(ies)…`)
+    await mapLimit(stillBare, 4, async (article) => {
+      const found = await relatedImage(imageKeywords(article.title))
+      if (!found) return
+      article.image = found.image
+      article.imageFrom = 'related'
+      article.imageCredit = found.credit
+      article.imageCreditUrl = found.creditUrl
+    })
+  }
+
+  const shownVideos = dedupe([...trending, ...topicNames.flatMap((t) => videosByTopic.get(t))])
+  await mapLimit(shownVideos, ENRICH_CONCURRENCY, (video) => bestThumbnail(video))
+
+  // ---- 4. Write ---------------------------------------------------------
+
+  await mkdir(OUT_DIR, { recursive: true })
+
+  const topicSummaries = []
+  const everything = []
+
+  for (const topic of topicNames) {
+    const articles = selection.get(topic)
+    const videos = videosByTopic.get(topic)
     const sources = new Set(articles.map((a) => a.source)).size
+    const withArt = articles.filter((a) => a.image).length
+    const withBody = articles.filter((a) => a.body.length).length
 
     await writeFile(
       resolve(OUT_DIR, `${topic}.json`),
-      `${JSON.stringify({ topic, generatedAt, count: articles.length, articles })}\n`
+      `${JSON.stringify({ topic, generatedAt, count: articles.length, articles, videos })}\n`
     )
 
     topicSummaries.push({
       topic,
       count: articles.length,
       sources,
+      videoCount: videos.length,
       newestAt: articles[0]?.publishedAt ?? null,
     })
     everything.push(...articles)
 
     console.log(
-      `  ${topic.padEnd(10)} ${String(articles.length).padStart(3)} stories · ${sources} sources`
+      `  ${topic.padEnd(10)} ${String(articles.length).padStart(2)} stories · ` +
+        `${sources} publishers · ${withArt} with art · ${withBody} with an excerpt · ` +
+        `${videos.length} videos`
     )
   }
+
+  // The YouTube board is written in the same shape as any other section, so
+  // the app can route to it without knowing it is special.
+  await writeFile(
+    resolve(OUT_DIR, `${VIDEO_TOPIC}.json`),
+    `${JSON.stringify({
+      topic: VIDEO_TOPIC,
+      generatedAt,
+      count: trending.length,
+      articles: trending.map((video) => ({ ...video, topic: VIDEO_TOPIC })),
+      videos: [],
+    })}\n`
+  )
+  topicSummaries.push({
+    topic: VIDEO_TOPIC,
+    count: trending.length,
+    sources: new Set(trending.map((v) => v.source)).size,
+    videoCount: trending.length,
+    newestAt: trending[0]?.publishedAt ?? null,
+  })
+  console.log(
+    `  ${VIDEO_TOPIC.padEnd(10)} ${String(trending.length).padStart(2)} trending videos · ` +
+      `${new Set(trending.map((v) => v.source)).size} channels`
+  )
 
   // Front page: rank everything, take each topic's best in rotation, then
   // break up any publisher that still lands twice in a row.
@@ -683,7 +1480,7 @@ async function main() {
     interleaveByTopic(
       dedupe(everything).sort((a, b) => prominence(b, now) - prominence(a, now)),
       topicNames
-    ).slice(0, 90),
+    ).slice(0, HIGHLIGHT_LIMIT),
     1
   )
 
@@ -691,19 +1488,27 @@ async function main() {
     resolve(OUT_DIR, 'index.json'),
     `${JSON.stringify({
       generatedAt,
-      refreshIntervalHours: 6,
-      nextRefreshAt: new Date(now + 6 * 3600_000).toISOString(),
+      refreshIntervalHours: REFRESH_HOURS,
+      nextRefreshAt: new Date(now + REFRESH_HOURS * 3600_000).toISOString(),
       totalArticles: everything.length,
+      totalVideos: shownVideos.length,
       topics: topicSummaries,
-      feedsAttempted: jobs.length,
+      feedsAttempted: jobs.length + creators.length,
       feedsFailed: failures.length,
       failures: failures.map((f) => ({ feed: f.feed, reason: f.reason })),
       highlights,
+      /** A short rail on the front page; the full board lives in youtube.json. */
+      videos: trending.slice(0, 8),
     })}\n`
   )
 
   const seconds = ((Date.now() - started) / 1000).toFixed(1)
-  console.log(`\n  ${everything.length} stories written to public/data in ${seconds}s`)
+  console.log(
+    `\n  ${everything.length} stories and ${shownVideos.length} videos written to public/data` +
+      ` in ${seconds}s`
+  )
+  const bare = kept.filter((a) => !a.image).length
+  if (bare) console.log(`  ${bare} story(ies) still have no artwork of any kind.`)
   if (failures.length) {
     console.log(`  ${failures.length} feed(s) unavailable this run:`)
     for (const f of failures) console.log(`    · ${f.feed} — ${f.reason}`)

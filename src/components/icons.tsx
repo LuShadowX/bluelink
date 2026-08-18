@@ -88,3 +88,27 @@ export function CheckIcon({ size = 15, className }: IconProps) {
     </svg>
   )
 }
+
+/* Solid, because it sits inside a filled disc where a stroked triangle would
+   disappear at 38px. */
+export function PlayIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      focusable={false}
+      className={className}
+    >
+      <path
+        d="M9 5.8 18.6 12 9 18.2Z"
+        stroke="currentColor"
+        strokeWidth={2.4}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}

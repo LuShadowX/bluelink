@@ -29,7 +29,8 @@ npx vite preview --port 4173 &
 node scripts/qa/layout.mjs    # column widths, headline baselines, overflow
 node scripts/qa/images.mjs    # every story image actually loads
 node scripts/qa/visual.mjs    # screenshots + reader, search, saving
-node scripts/qa/refresh.mjs   # the six-hour refresh, with faked stale editions
+node scripts/qa/shots.mjs     # screenshot sweep: front, section, YouTube, reader
+node scripts/qa/refresh.mjs   # the four-hour refresh, with faked stale editions
 node scripts/qa/pwa.mjs       # manifest, service worker, offline, pull-to-refresh
 node scripts/qa/icons.mjs     # regenerate app icons from scripts/icon-source.svg
 ```

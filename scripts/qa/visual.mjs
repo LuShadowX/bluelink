@@ -144,7 +144,7 @@ async function settle(p, ms = 3500) {
     // Force every lazy image to start loading.
     for (let y = 0; y < document.body.scrollHeight; y += 700) {
       window.scrollTo(0, y)
-      await new Promise((r) => setTimeout(r, 90))
+      await new Promise((r) => setTimeout(r, 220))
     }
     window.scrollTo(0, 0)
   })

@@ -27,11 +27,13 @@ interface NewsValue {
   now: number
 
   articlesByTopic: Partial<Record<TopicId, Article[]>>
+  /** Creator uploads for a section, shown as a rail under its news. */
+  videosByTopic: Partial<Record<TopicId, Article[]>>
   everyArticle: Article[]
   requestTopic: (topic: TopicId) => void
   isTopicLoading: (topic: TopicId) => boolean
 
-  /** True once the published issue is older than the six-hour window. */
+  /** True once the published issue is older than the four-hour window. */
   isStale: boolean
   checking: boolean
   /** Set when a newer issue exists but the reader has not accepted it yet. */
@@ -51,6 +53,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
   const [index, setIndex] = useState<IndexPayload | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [articlesByTopic, setArticlesByTopic] = useState<Partial<Record<TopicId, Article[]>>>({})
+  const [videosByTopic, setVideosByTopic] = useState<Partial<Record<TopicId, Article[]>>>({})
   const [loadingTopics, setLoadingTopics] = useState<Set<TopicId>>(new Set())
   const [checking, setChecking] = useState(false)
   const [pending, setPending] = useState<IndexPayload | null>(null)
@@ -68,6 +71,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     try {
       const payload = await loadTopic(topic, bustAt)
       setArticlesByTopic((prev) => ({ ...prev, [topic]: payload.articles }))
+      setVideosByTopic((prev) => ({ ...prev, [topic]: payload.videos ?? [] }))
     } catch {
       // A single missing section is survivable: the topic simply reads empty
       // and the rest of the app is unaffected.
@@ -176,6 +180,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
         setIndex(payload)
         setPending(null)
         setArticlesByTopic({})
+        setVideosByTopic({})
         inflight.current.clear()
         TOPIC_IDS.forEach((topic) => void fetchTopic(topic, stamp))
       }
@@ -192,12 +197,13 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     setIndex(pending)
     setPending(null)
     setArticlesByTopic({})
+    setVideosByTopic({})
     inflight.current.clear()
     TOPIC_IDS.forEach((topic) => void fetchTopic(topic, at))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [pending, fetchTopic])
 
-  // One heartbeat drives both the clock and the six-hour check.
+  // One heartbeat drives both the clock and the four-hour check.
   useEffect(() => {
     const tick = () => {
       const at = Date.now()
@@ -265,6 +271,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       index,
       now,
       articlesByTopic,
+      videosByTopic,
       everyArticle,
       requestTopic,
       isTopicLoading,
@@ -282,6 +289,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       index,
       now,
       articlesByTopic,
+      videosByTopic,
       everyArticle,
       requestTopic,
       isTopicLoading,

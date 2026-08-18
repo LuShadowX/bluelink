@@ -1,4 +1,4 @@
-export type TopicId = 'tech' | 'ai' | 'sports' | 'games' | 'lifestyle'
+export type TopicId = 'tech' | 'ai' | 'sports' | 'games' | 'lifestyle' | 'youtube'
 
 export interface Topic {
   id: TopicId
@@ -8,52 +8,76 @@ export interface Topic {
   kicker: string
   /** One line of editorial framing, used on the topic landing strip. */
   blurb: string
-  /** Accent hue. Muted on purpose so five of them can share one page. */
+  /** Accent hue. Saturated on purpose — the whole page is white behind it. */
   accent: string
-  /** Same hue at ~8% for pill and hover washes. */
+  /** The same hue darkened, for ink shadows and pressed states. */
+  deep: string
+  /** Same hue at ~10% for pill and hover washes. */
   wash: string
+  /** True for the YouTube board, which carries videos rather than reporting. */
+  video?: boolean
 }
 
+/*
+ * Six saturated hues that have to sit next to each other on one white page, so
+ * each is picked to be unmistakable at the size of a nav pill: blue, violet,
+ * green, magenta, orange, red. No two share a neighbour on the wheel.
+ */
 export const TOPICS: readonly Topic[] = [
   {
     id: 'tech',
     label: 'Tech',
     kicker: 'Technology',
     blurb: 'Hardware, software and the companies bending both.',
-    accent: '#2049C4',
-    wash: 'rgba(32, 73, 196, 0.08)',
+    accent: '#1554ED',
+    deep: '#0B2F8A',
+    wash: 'rgba(21, 84, 237, 0.10)',
   },
   {
     id: 'ai',
     label: 'AI',
     kicker: 'Artificial Intelligence',
     blurb: 'Models, research and what they are actually doing out there.',
-    accent: '#6A3AD0',
-    wash: 'rgba(106, 58, 208, 0.08)',
+    accent: '#7C3AED',
+    deep: '#4A1D9B',
+    wash: 'rgba(124, 58, 237, 0.10)',
   },
   {
     id: 'sports',
     label: 'Sports',
     kicker: 'Sport',
     blurb: 'Results, transfers and the long arc of a season.',
-    accent: '#0E7550',
-    wash: 'rgba(14, 117, 80, 0.08)',
+    accent: '#00A25B',
+    deep: '#065F38',
+    wash: 'rgba(0, 162, 91, 0.10)',
   },
   {
     id: 'games',
     label: 'Games',
     kicker: 'Games',
     blurb: 'Releases, studios and the craft behind the play.',
-    accent: '#BC2367',
-    wash: 'rgba(188, 35, 103, 0.08)',
+    accent: '#EC1E79',
+    deep: '#96114B',
+    wash: 'rgba(236, 30, 121, 0.10)',
   },
   {
     id: 'lifestyle',
     label: 'Lifestyle',
     kicker: 'Lifestyle',
     blurb: 'Food, health, travel and the texture of a day.',
-    accent: '#BB5C26',
-    wash: 'rgba(187, 92, 38, 0.08)',
+    accent: '#FF6B00',
+    deep: '#A33F00',
+    wash: 'rgba(255, 107, 0, 0.10)',
+  },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    kicker: 'YouTube',
+    blurb: 'What the internet is watching right now, and who just posted.',
+    accent: '#FF2233',
+    deep: '#A00D19',
+    wash: 'rgba(255, 34, 51, 0.10)',
+    video: true,
   },
 ] as const
 
@@ -70,4 +94,4 @@ export function isTopicId(value: string): value is TopicId {
 }
 
 /** How often the feed pipeline is expected to produce a fresh payload. */
-export const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000
+export const REFRESH_INTERVAL_MS = 4 * 60 * 60 * 1000

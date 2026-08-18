@@ -26,7 +26,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--page);
   color: var(--ink);
   font-family: var(--font-text);
   font-size: var(--step-body);
@@ -41,18 +41,6 @@ body {
   overscroll-behavior-y: contain;
 }
 
-/* Grain sits above the background and below every pixel of content. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: var(--grain);
-  opacity: 0.5;
-  mix-blend-mode: multiply;
-}
-
 #root {
   position: relative;
   z-index: 1;
@@ -61,17 +49,163 @@ body::before {
   flex-direction: column;
 }
 
+/* ---------------------------------------------------------------------------
+ * The X field
+ *
+ * A fixed, non-interactive layer that everything else floats over: a tiled X
+ * screen drifting diagonally, two slow colour blooms, and one huge outlined X
+ * turning behind the page. It is deliberately faint — the job is to give the
+ * white panels something to be above, not to compete with a headline.
+ *
+ * All three layers animate transform or background-position only, so the whole
+ * thing stays on the compositor and never triggers layout. The global
+ * reduced-motion rule above freezes it in place rather than removing it.
+ * ------------------------------------------------------------------------- */
+
+/*
+ * z-index: -1, not 0.
+ *
+ * A fixed element with z-index 0 is still a *positioned* element, and CSS paints
+ * every positioned box after all the in-flow static ones — so at z-index 0 this
+ * opaque layer covered the footer and the section intros while leaving the cards
+ * visible, because cards are position: relative and later in tree order. A
+ * negative index puts it behind the whole of #root, which is the only thing that
+ * makes it a background rather than a sheet of white paint.
+ */
+.xfield {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--page);
+}
+
+.xfield__grid {
+  position: absolute;
+  /* Oversized so the drift never exposes an edge. */
+  inset: -20%;
+  background-image: var(--xtile);
+  background-size: 84px 84px;
+  opacity: 0.055;
+  animation: x-drift 34s linear infinite;
+}
+
+/* A second, larger pass at a different speed: two rates read as depth, one
+   reads as a moving wallpaper. */
+.xfield__grid--slow {
+  background-size: 172px 172px;
+  opacity: 0.035;
+  animation-duration: 76s;
+  animation-direction: reverse;
+}
+
+@keyframes x-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 84px 84px;
+  }
+}
+
+.xfield__bloom {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.16;
+  will-change: transform;
+}
+
+.xfield__bloom--one {
+  top: -14vmax;
+  left: -10vmax;
+  background: var(--accent);
+  animation: bloom-a 26s var(--ease-in-out) infinite;
+}
+
+.xfield__bloom--two {
+  right: -14vmax;
+  bottom: -16vmax;
+  background: var(--pop);
+  opacity: 0.2;
+  animation: bloom-b 34s var(--ease-in-out) infinite;
+}
+
+@keyframes bloom-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(12vw, 8vh, 0) scale(1.18);
+  }
+}
+
+@keyframes bloom-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate3d(-10vw, -7vh, 0) scale(1);
+  }
+}
+
+/* The hero X: one big outlined mark, turning slowly. */
+.xfield__mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(126vh, 118vw);
+  height: min(126vh, 118vw);
+  margin: calc(min(126vh, 118vw) / -2) 0 0 calc(min(126vh, 118vw) / -2);
+  opacity: 0.07;
+  animation: x-turn 120s linear infinite;
+}
+
+.xfield__mark path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+@keyframes x-turn {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* On a phone the blooms are the expensive part and the least visible, so the
+   field falls back to the drifting screen alone. */
+@media (max-width: 700px) {
+  .xfield__bloom {
+    display: none;
+  }
+  .xfield__mark {
+    opacity: 0.05;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Elements
+ * ------------------------------------------------------------------------- */
+
 h1,
 h2,
 h3,
 h4 {
   margin: 0;
-  font-weight: 400;
   font-family: var(--font-display);
+  font-weight: 700;
   letter-spacing: var(--tracking-display);
   line-height: var(--leading-display);
-  /* Instrument Serif is a light-contrast face; a hair of synthetic weight
-     keeps mid-size headlines from going wispy on Windows. */
   text-wrap: balance;
 }
 
@@ -114,14 +248,14 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--line) solid var(--ink);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 ::selection {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--pop);
+  color: var(--ink);
 }
 
 /* ---- Shared primitives ------------------------------------------------ */
@@ -139,6 +273,19 @@ input {
   padding-right: max(var(--shell-pad), env(safe-area-inset-right, 0px));
 }
 
+/*
+ * The cel: white stock, inked outline, hard offset shadow. Every floating
+ * surface in the app is one of these, which is what makes the whole page read
+ * as a single drawn object rather than a stack of unrelated widgets.
+ */
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift);
+}
+
 /* Small uppercase mono label. The workhorse of the whole layout: it carries
    category, timestamp, source and index without ever competing with a
    headline. */
@@ -152,9 +299,43 @@ input {
   font-variant-numeric: tabular-nums;
 }
 
+/* An inked colour block: the comic caption box. Used for kickers, counts and
+   anything else that has to be found before it is read. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--ink-inverse);
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tag--ink {
+  background: var(--ink);
+  color: var(--ink-inverse);
+}
+
+.tag--pop {
+  background: var(--pop);
+  color: var(--ink);
+}
+
+.tag--quiet {
+  background: var(--panel);
+  color: var(--ink-soft);
+}
+
 .rule {
-  height: 1px;
-  background: var(--rule);
+  height: var(--line);
+  background: var(--ink);
   border: 0;
   margin: 0;
 }
@@ -171,21 +352,20 @@ input {
   border: 0;
 }
 
-/* Headline link: the underline draws in from the left on hover rather than
-   simply appearing, which is the single cheapest way to make a text grid feel
-   built rather than generated. */
+/* Headline link: a thick accent marker sweeps in under the words, like a comic
+   emphasis stroke rather than a browser underline. */
 .headline-link {
   display: inline;
   background-image: linear-gradient(var(--accent), var(--accent));
   background-repeat: no-repeat;
   background-position: 0 100%;
-  background-size: 0% 1px;
+  background-size: 0% 3px;
   transition: background-size var(--dur-base) var(--ease-out);
 }
 
 a:hover .headline-link,
 a:focus-visible .headline-link {
-  background-size: 100% 1px;
+  background-size: 100% 3px;
 }
 
 @keyframes rise {
@@ -205,5 +385,17 @@ a:focus-visible .headline-link {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* Used by anything that should read as hovering above the field rather than
+   resting on it — the pull badge, the play button on a video plate. */
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
   }
 }

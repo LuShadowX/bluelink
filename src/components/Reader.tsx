@@ -14,6 +14,7 @@ import {
   CheckIcon,
   CloseIcon,
   LinkIcon,
+  PlayIcon,
 } from './icons'
 
 interface Props {
@@ -80,6 +81,8 @@ export function Reader({
   const backdropRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [copied, setCopied] = useState(false)
+  /** Nothing is loaded from YouTube until this is true. */
+  const [playing, setPlaying] = useState(false)
   const closingRef = useRef(false)
 
   /** Animate back to the card, then let the parent unmount us. */
@@ -171,6 +174,7 @@ export function Reader({
     panelRef.current?.scrollTo({ top: 0 })
     setProgress(0)
     setCopied(false)
+    setPlaying(false)
   }, [article.id])
 
   const onScroll = useCallback(() => {
@@ -255,12 +259,19 @@ export function Reader({
         </div>
 
         <article className="reader__article">
-          <p className="reader__kicker">{topic.kicker}</p>
+          <p className="reader__kicker">
+            <span>{topic.kicker}</span>
+          </p>
 
           <h1 className="reader__title">{article.title}</h1>
 
           <div className="reader__meta">
             <span className="reader__source">{article.source}</span>
+            {article.tier === 1 && article.kind === 'article' && (
+              <span className="reader__trust" title="A major newsroom or the primary source">
+                Verified desk
+              </span>
+            )}
             {article.author && (
               <>
                 <span className="card__meta-sep" aria-hidden="true" />
@@ -275,13 +286,75 @@ export function Reader({
             </span>
           </div>
 
-          {article.image && (
-            <figure className="reader__figure">
-              <StoryImage src={article.image} alt="" letter={topic.label.charAt(0)} eager />
-              <figcaption className="reader__credit" style={{ marginTop: 'var(--sp-2)' }}>
-                Image: {article.source}
-              </figcaption>
-            </figure>
+          {/*
+            A video plays here rather than throwing the reader out to YouTube —
+            but the iframe is only created once the plate is tapped, so opening a
+            story never quietly loads a third-party player.
+          */}
+          {article.kind === 'video' && article.videoId ? (
+            <div className="reader__embed">
+              {playing ? (
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${article.videoId}?autoplay=1&rel=0`}
+                  title={article.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <>
+                  <StoryImage
+                    src={article.image}
+                    alt=""
+                    letter={topic.label.charAt(0)}
+                    eager
+                  />
+                  <button
+                    type="button"
+                    className="reader__embed-play"
+                    onClick={() => setPlaying(true)}
+                    aria-label={`Play “${article.title}”`}
+                  >
+                    <span aria-hidden="true">
+                      <PlayIcon size={26} />
+                    </span>
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            article.image && (
+              <figure className="reader__figure">
+                <StoryImage src={article.image} alt="" letter={topic.label.charAt(0)} eager />
+                <figcaption className="reader__credit" style={{ marginTop: 'var(--sp-2)' }}>
+                  {/*
+                    Artwork the pipeline had to go and find is credited as
+                    exactly that. It is a photograph of the same subject, not the
+                    publisher's own picture of the event, and saying so is the
+                    difference between an illustration and a small lie.
+                  */}
+                  {article.imageCredit ? (
+                    <>
+                      <span>{article.imageCredit}</span>
+                      {article.imageCreditUrl && (
+                        <a
+                          href={article.imageCreditUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            openExternal(article.imageCreditUrl!)
+                          }}
+                        >
+                          Source
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <span>Image: {article.source}</span>
+                  )}
+                </figcaption>
+              </figure>
+            )
           )}
 
           {/*
@@ -304,15 +377,33 @@ export function Reader({
           )}
 
           {/*
+            The paragraphs the pipeline lifted out of the article itself. This is
+            what makes opening a story worth the tap: enough of the reporting to
+            know what happened, and to decide whether the rest is worth a trip to
+            somebody else's site.
+          */}
+          {article.body.length > 0 && (
+            <div className="reader__body">
+              {article.body.map((paragraph) => (
+                <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+              ))}
+            </div>
+          )}
+
+          {/*
             BlueLink deliberately stops at the excerpt. The rest of the article
             is the publisher's to serve, with their layout, their advertising
             and their byline.
           */}
           <div className="reader__handoff">
             <p className="reader__handoff-text">
-              {article.summary
-                ? `Want the rest? ${article.source} has the full story.`
-                : `${article.source} has the full story on their site.`}
+              {article.kind === 'video'
+                ? `${article.channel ?? article.source} published this on YouTube.`
+                : article.body.length
+                  ? `That is the opening of the piece. ${article.source} has the rest.`
+                  : article.summary
+                    ? `Want the rest? ${article.source} has the full story.`
+                    : `${article.source} has the full story on their site.`}
             </p>
             <div className="reader__actions">
               <a
@@ -328,7 +419,9 @@ export function Reader({
                   openExternal(article.url)
                 }}
               >
-                Continue at {article.sourceHost || article.source}
+                {article.kind === 'video'
+                  ? 'Watch on YouTube'
+                  : `Continue at ${article.sourceHost || article.source}`}
                 <ArrowUpRightIcon />
               </a>
             </div>

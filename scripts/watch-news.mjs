@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000
+const REFRESH_MS = 4 * 60 * 60 * 1000
 const FETCH_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fetch-news.mjs')
 
 let timer = null
@@ -21,7 +21,7 @@ function runFetch() {
   }
   running = true
   // Recorded at fire time, which is when setInterval anchors the next tick.
-  nextRunAt = new Date(Date.now() + SIX_HOURS_MS)
+  nextRunAt = new Date(Date.now() + REFRESH_MS)
 
   const finish = (outcome) => {
     running = false
@@ -46,6 +46,6 @@ function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'))
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 
-console.log('[watch-news] refreshing every 6 hours. Press Ctrl+C to stop.')
+console.log('[watch-news] refreshing every 4 hours. Press Ctrl+C to stop.')
 runFetch()
-timer = setInterval(runFetch, SIX_HOURS_MS)
+timer = setInterval(runFetch, REFRESH_MS)

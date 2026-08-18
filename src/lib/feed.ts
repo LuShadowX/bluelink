@@ -9,7 +9,7 @@ import type { TopicId } from '../config/topics'
  *
  * Inside a native shell it is not. Capacitor bundles the web assets into the
  * app, so a relative resolve reads the copy that was frozen when the app was
- * built — and keeps reading it forever. The six-hour refresh would appear to
+ * built — and keeps reading it forever. The four-hour refresh would appear to
  * run and silently change nothing. Native builds therefore set
  * VITE_DATA_ORIGIN to the live edition and fall back to the bundled copy, which
  * also gives them an instant first paint and something to read offline.

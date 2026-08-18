@@ -2,8 +2,9 @@ name: Refresh news
 
 on:
   schedule:
-    # Every 6 hours, matching refreshIntervalHours in public/data/index.json.
-    - cron: '0 */6 * * *'
+    # Every 4 hours, matching refreshIntervalHours in public/data/index.json
+    # and REFRESH_INTERVAL_MS in src/config/topics.ts.
+    - cron: '0 */4 * * *'
   workflow_dispatch:
 
 permissions:
