@@ -630,10 +630,14 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  /* Room for the offset shadows and the hover lift, which would otherwise be
-     clipped by the scroll container. */
-  padding: 4px 4px 12px;
-  margin: -4px -4px -12px;
+  /*
+   * Room for the offset shadows and the hover lift, which would otherwise be
+   * clipped by the scroll container. Vertical only: a negative horizontal margin
+   * pushes the scroller past the page gutter and gives the whole document 4px of
+   * horizontal overflow on a phone.
+   */
+  padding: 4px 8px 12px 0;
+  margin-block: -4px -12px;
 }
 
 .vrail::-webkit-scrollbar {
