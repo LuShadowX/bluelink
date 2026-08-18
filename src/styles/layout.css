@@ -73,6 +73,14 @@
   align-items: center;
   gap: 4px;
   margin-right: auto;
+  /* A section added later must scroll rather than burst the bar. */
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .nav__link {
@@ -486,12 +494,17 @@
 .section-rule {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3) var(--sp-4);
   padding: var(--sp-7) 0 var(--sp-5);
+  /* A long section name and its "all of this" link do not both fit on a phone —
+     "Clash Royale & Brawl Stars" is 26 characters — so the link drops to its own
+     line instead of pushing the page sideways. */
+  flex-wrap: wrap;
 }
 
 .section-rule__label {
-  flex: none;
+  flex: 0 1 auto;
+  max-width: 100%;
   padding: 5px 11px;
   border: var(--line-hair) solid var(--ink);
   border-radius: var(--radius-sm);
@@ -506,14 +519,16 @@
 }
 
 .section-rule__line {
-  flex: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
   height: var(--line);
   background: var(--ink);
   opacity: 0.18;
 }
 
 .section-rule__note {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: var(--step-meta);
   letter-spacing: 0.08em;
@@ -814,17 +829,24 @@
   }
 }
 
-@media (max-width: 900px) {
-  :root {
-    --header-h: 54px;
-  }
-
+/*
+ * Eight sections plus Today is more than nine pills, and they stop fitting
+ * beside the wordmark and the tools well before the old 900px hand-off. The
+ * scrolling rail takes over earlier rather than letting the bar overflow.
+ */
+@media (max-width: 1180px) {
   .nav {
     display: none;
   }
 
   .nav-rail {
     display: flex;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --header-h: 54px;
   }
 
   .front-top {

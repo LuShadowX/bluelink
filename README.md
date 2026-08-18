@@ -1,6 +1,7 @@
 # BlueLink
 
-An editorial news reader for tech, AI, sport, games, lifestyle and YouTube.
+An editorial news reader for tech, AI, sport, games, Clash Royale & Brawl Stars, film,
+lifestyle and YouTube.
 
 ## Quick start
 
@@ -125,34 +126,58 @@ Every feed is verified live — the most recent pipeline run completed with an e
 
 | Section | News feeds | YouTube channels |
 | --- | --- | --- |
-| Tech | 11 | 9 |
-| AI | 11 | 9 |
-| Sports | 8 | 7 |
+| Tech | 11 | 12 |
+| AI | 11 | 12 |
+| Sports | 10 | 12 |
 | Games | 9 | 7 |
-| Lifestyle | 12 | 8 |
-| YouTube | — | 11 |
+| Clash Royale & Brawl Stars | 9 | 8 |
+| Movies | 9 | — |
+| Lifestyle | 12 | — |
 
 Each feed carries a `tier`: 1 for a major newsroom or the primary source itself, 2 for a
 specialist desk, 3 for something looser. Tier feeds the ranking as a tie-breaker, so a
-close call goes to the more reliable byline — and one publisher can hold at most five of a
-section's twenty slots, keeping a section a survey rather than a syndication feed.
+close call goes to the more reliable byline — and one publisher can hold at most four of a
+section's fifteen slots, keeping a section a survey rather than a syndication feed.
+
+A feed can also carry a `match` list, which keeps only the items mentioning one of its
+terms. That is how a section as narrow as Clash Royale is built at all: no publisher runs a
+feed for it, so the mobile-gaming and esports feeds are filtered down to what is about the
+games.
 
 The full list of feed URLs and channel IDs lives in `scripts/feeds.json`.
 
+## The look
+
+White stock, hard black outlines and offset ink shadows — every card, pill and panel is a
+comic cel, and depth is drawn rather than blurred. One saturated hue per section, always
+outlined, so eight of them share a page without vibrating.
+
+Behind all of it is the X field: two tiled fields of outlined X marks in coral hairlines
+drifting diagonally at different rates, plus one enormous mark turning slowly. Each layer
+animates `transform` only and travels exactly one tile period, so the motion stays on the
+compositor and the loop point is invisible. It sits at `z-index: -1` — at `0` a fixed layer
+still paints after every in-flow static box, which once hid the whole footer.
+
 ## Sections, videos and artwork
 
-- **Twenty per section.** A section you can finish reading beats an endless scroll, and it
+- **Fifteen per section.** A section you can finish reading beats an endless scroll, and it
   is few enough that every kept story can be enriched by fetching its page.
 - **Real artwork.** Feed image → the page's own `og:image` → an openly licensed photograph
   of the same subject from Openverse, credited as a related picture rather than passed off
   as the publisher's own → a drawn fallback plate. The last run put artwork on 100 of 100.
-- **A real excerpt.** Each story carries `body[]`: a few paragraphs mined from the article
-  page, or from the feed's own `content:encoded` for the publishers that refuse a server
-  fetch. Opening a story gives you something to read before the link out.
+- **The short version.** Each story carries `points[]`: three or four sentences pulled out
+  of the article and scored on how much they carry — figures, dates, attribution, and
+  overlap with the headline. The reader shows them as a bulleted list, so a story is read
+  at a glance rather than worked through. They are extracted, never generated: every point
+  is a sentence the publisher actually wrote. `body[]` keeps the paragraph excerpt as the
+  fallback for the few stories where nothing scored well enough to bullet.
 - **YouTube.** Each section gets a rail of new uploads from curated creators, and the
   YouTube board ranks everything by views-per-hour — what is actually moving now, rather
-  than whichever channel is biggest. Shorts are detected and dropped, and a video plays
-  inside the reader without loading anything from YouTube until it is tapped.
+  than whichever channel is biggest. The roster is deliberately narrow: Clash Royale and
+  Brawl Stars, cricket, football, basketball and the Olympics, PC hardware, freeCodeCamp,
+  and AI/ML. Console-gaming channels carry `board: false`, which keeps them in the games
+  rail but off the board. Shorts are detected and dropped, and a video plays inside the
+  reader without loading anything from YouTube until it is tapped.
 
 ## Project structure
 
@@ -171,8 +196,8 @@ src/
                       the animated X backdrop
   pages/              Front page, topic page, saved list
 public/
-  data/               Generated JSON — one file per section (youtube.json
-                      included), plus index.json
+  data/               Generated JSON — one file per section (arena.json,
+                      movies.json and youtube.json included), plus index.json
   icons/              App icons rasterised from scripts/icon-source.svg
   manifest.webmanifest  Web app manifest: name, display mode, shortcuts
   sw.js               Service worker: precache and per-resource caching

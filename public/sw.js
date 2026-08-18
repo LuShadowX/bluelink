@@ -16,7 +16,7 @@
  *                                    never allowed to eat unbounded storage
  */
 
-const VERSION = 'bluelink-v2'
+const VERSION = 'bluelink-v3'
 const SHELL_CACHE = `${VERSION}-shell`
 const DATA_CACHE = `${VERSION}-data`
 const IMAGE_CACHE = `${VERSION}-images`
@@ -42,6 +42,8 @@ const PRECACHE = [
   './data/ai.json',
   './data/sports.json',
   './data/games.json',
+  './data/arena.json',
+  './data/movies.json',
   './data/lifestyle.json',
   './data/youtube.json',
 ]

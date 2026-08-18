@@ -13,8 +13,13 @@ export interface Article {
   url: string
   /** The dek: two or three lines under the headline. */
   summary: string
-  /** Excerpt paragraphs, shown in the reader before the handoff link. */
+  /** Excerpt paragraphs, kept as the fallback when there are no points. */
   body: string[]
+  /**
+   * The short version: three or four sentences the publisher actually wrote,
+   * picked for how much they carry. This is what the reader shows.
+   */
+  points: string[]
   image: string | null
   imageFrom: ImageOrigin | null
   /** Set only for `related` artwork, which is not the publisher's own. */

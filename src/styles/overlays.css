@@ -291,9 +291,65 @@
 }
 
 /*
- * The paragraphs the pipeline pulled out of the article page. This is the part
- * that makes the reader worth opening: enough reporting to know what happened
- * before deciding whether to follow the link.
+ * The short version: the points the pipeline extracted, set as a list you can
+ * take in at a glance. Each marker is a small inked square in the section
+ * colour rather than a bullet glyph, so the list reads as part of the same
+ * drawn interface as the cards.
+ */
+.reader__points {
+  margin-top: var(--sp-5);
+  padding: var(--sp-5);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  box-shadow: var(--lift-sm);
+}
+
+.reader__points-label {
+  display: inline-block;
+  margin-bottom: var(--sp-4);
+  padding: 3px 9px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--pop);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.reader__points ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.reader__points li {
+  position: relative;
+  padding-left: var(--sp-5);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.reader__points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* Optically centred on the first line rather than the whole item. */
+  top: 0.55em;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/*
+ * The paragraph fallback, for the handful of stories where no sentence scored
+ * well enough to bullet.
  */
 .reader__body {
   display: flex;

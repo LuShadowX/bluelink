@@ -1,5 +1,6 @@
 {
   "_tiers": "tier 1 = major newsroom or the primary source itself; 2 = strong specialist desk; 3 = useful but looser (aggregation, rumour, blog). Tier feeds the ranking, so a tier-1 story wins a close call.",
+  "_match": "Optional keyword list. A feed with `match` keeps only items whose headline or summary mentions one of the terms — the way a section as narrow as Clash Royale is built, since no publisher runs a dedicated feed for it.",
   "tech": [
     { "name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "tier": 1 },
     { "name": "Ars Technica", "url": "https://arstechnica.com/feed/", "tier": 1 },
@@ -29,6 +30,8 @@
   "sports": [
     { "name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml", "tier": 1 },
     { "name": "BBC Football", "url": "https://feeds.bbci.co.uk/sport/football/rss.xml", "tier": 1 },
+    { "name": "BBC Cricket", "url": "https://feeds.bbci.co.uk/sport/cricket/rss.xml", "tier": 1 },
+    { "name": "BBC Basketball", "url": "https://feeds.bbci.co.uk/sport/basketball/rss.xml", "tier": 1 },
     { "name": "The Guardian", "url": "https://www.theguardian.com/sport/rss", "tier": 1 },
     { "name": "Sky Sports", "url": "https://www.skysports.com/rss/12040", "tier": 1 },
     { "name": "Sky Sports Football", "url": "https://www.skysports.com/rss/11095", "tier": 1 },
@@ -47,6 +50,63 @@
     { "name": "Nintendo Life", "url": "https://www.nintendolife.com/feeds/latest", "tier": 2 },
     { "name": "Kotaku", "url": "https://kotaku.com/rss", "tier": 3 }
   ],
+  "arena": [
+    { "name": "RoyaleAPI", "url": "https://royaleapi.com/blog/rss.xml", "tier": 1 },
+    { "name": "Dexerto", "url": "https://www.dexerto.com/feed/category/brawl-stars/", "tier": 2 },
+    {
+      "name": "MobileGamer.biz",
+      "url": "https://mobilegamer.biz/feed/",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans", "squad busters"]
+    },
+    {
+      "name": "Dexerto Gaming",
+      "url": "https://www.dexerto.com/feed/category/gaming/",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans", "squad busters"]
+    },
+    {
+      "name": "Pocket Gamer",
+      "url": "https://www.pocketgamer.com/clash-royale/rss/",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans", "squad busters"]
+    },
+    {
+      "name": "PocketGamer.biz",
+      "url": "https://www.pocketgamer.biz/rss/",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans", "squad busters"]
+    },
+    {
+      "name": "TouchArcade",
+      "url": "https://toucharcade.com/feed/",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans", "squad busters"]
+    },
+    {
+      "name": "Esports.gg",
+      "url": "https://esports.gg/feed/",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans"]
+    },
+    {
+      "name": "Dot Esports",
+      "url": "https://dotesports.com/feed",
+      "tier": 2,
+      "match": ["clash royale", "brawl stars", "supercell", "clash of clans"]
+    }
+  ],
+  "movies": [
+    { "name": "Variety", "url": "https://variety.com/feed/", "tier": 1 },
+    { "name": "The Hollywood Reporter", "url": "https://www.hollywoodreporter.com/feed/", "tier": 1 },
+    { "name": "Deadline", "url": "https://deadline.com/feed/", "tier": 1 },
+    { "name": "The Guardian", "url": "https://www.theguardian.com/film/rss", "tier": 1 },
+    { "name": "BBC Entertainment", "url": "https://www.bbc.co.uk/news/entertainment_and_arts/rss.xml", "tier": 1 },
+    { "name": "IndieWire", "url": "https://www.indiewire.com/feed/", "tier": 2 },
+    { "name": "Roger Ebert", "url": "https://www.rogerebert.com/feed", "tier": 2 },
+    { "name": "SlashFilm", "url": "https://www.slashfilm.com/feed/", "tier": 2 },
+    { "name": "Collider", "url": "https://collider.com/feed/", "tier": 3 }
+  ],
   "lifestyle": [
     { "name": "The Guardian", "url": "https://www.theguardian.com/lifeandstyle/rss", "tier": 1 },
     { "name": "Guardian Travel", "url": "https://www.theguardian.com/travel/rss", "tier": 1 },
@@ -61,63 +121,62 @@
     { "name": "Apartment Therapy", "url": "https://www.apartmenttherapy.com/main.rss", "tier": 3 },
     { "name": "Lifehacker", "url": "https://lifehacker.com/rss", "tier": 3 }
   ],
-  "_creators": "YouTube channels, pulled from the public per-channel Atom feed (no API key). `topic` places a creator's videos in that section; the `youtube` topic is the trending board and also aggregates the strongest videos from every other section.",
+  "_creators": "YouTube channels, pulled from the public per-channel Atom feed (no API key). `topic` places a creator's uploads in that section's rail. `board: false` keeps a channel out of the trending YouTube board while still feeding its own section — used for the console-gaming channels, because the board is scoped to Clash/Brawl, sport, hardware, code and AI.",
   "creators": [
-    { "name": "Marques Brownlee", "topic": "tech", "channelId": "UCBJycsmduvYEL83R_U4JriQ" },
+    { "name": "Clash Royale", "topic": "arena", "channelId": "UC_F8DoJf9MZogEOU51TpTbQ" },
+    { "name": "Brawl Stars", "topic": "arena", "channelId": "UCooVYzDxdwTtGYAkcPmOgOw" },
+    { "name": "Clash of Clans", "topic": "arena", "channelId": "UCD1Em4q90ZUK2R5HKesszJg" },
+    { "name": "Brawl Stars Esports", "topic": "arena", "channelId": "UCjvzNXGGlnC4jcCnhglf8-Q" },
+    { "name": "SirTag", "topic": "arena", "channelId": "UCvje1_OaZUZVZDzxeyOFf6A" },
+    { "name": "Boss CR", "topic": "arena", "channelId": "UC2PcZfmy7CYrKmFH2-yx_wQ" },
+    { "name": "KairosTime Gaming", "topic": "arena", "channelId": "UCmG2EhfOwSjpPMX4LjGY__A" },
+    { "name": "SpenLC", "topic": "arena", "channelId": "UCsuS8BRN4y6_QoBvAqTtSSg" },
+
     { "name": "Linus Tech Tips", "topic": "tech", "channelId": "UCXuqSBlHAE6Xw-yeJA0Tunw" },
-    { "name": "Mrwhosetheboss", "topic": "tech", "channelId": "UCMiJRAwDNSNzuYeN2uWa0pA" },
+    { "name": "Gamers Nexus", "topic": "tech", "channelId": "UChIs72whgZI9w6d6FhwGGHA" },
+    { "name": "Hardware Unboxed", "topic": "tech", "channelId": "UCI8iQa1hv7oV_Z8D35vVuSg" },
+    { "name": "der8auer EN", "topic": "tech", "channelId": "UCGsaijjOJshS2_ZmMNZgS-g" },
+    { "name": "JayzTwoCents", "topic": "tech", "channelId": "UCkWQ0gDrqOCarmUKmppD7GQ" },
+    { "name": "Level1Techs", "topic": "tech", "channelId": "UC4w1YQAJMWOz4qtxinq55LQ" },
+    { "name": "Techquickie", "topic": "tech", "channelId": "UC0vBXGSyV14uvJ4hECDOl0Q" },
+    { "name": "Marques Brownlee", "topic": "tech", "channelId": "UCBJycsmduvYEL83R_U4JriQ" },
     { "name": "Dave2D", "topic": "tech", "channelId": "UCVYamHliCI9rw1tHR1xbkfw" },
-    { "name": "The Verge", "topic": "tech", "channelId": "UCddiUEpeqJcYeBxX1IVBKvQ" },
-    { "name": "Unbox Therapy", "topic": "tech", "channelId": "UCsTcErHg8oDvUnTzoqsYeNw" },
-    { "name": "JerryRigEverything", "topic": "tech", "channelId": "UCWFKCr40YwOZQx8FHU_ZqqQ" },
-    { "name": "Austin Evans", "topic": "tech", "channelId": "UCXGgrKt94gR6lmN4aN3mYTg" },
-    { "name": "Waveform", "topic": "tech", "channelId": "UCRrFcwemOAg5auA8Buel1ig" },
+    { "name": "Mrwhosetheboss", "topic": "tech", "channelId": "UCMiJRAwDNSNzuYeN2uWa0pA" },
+    { "name": "freeCodeCamp", "topic": "tech", "channelId": "UC8butISFwT-Wl7EV0hUK0BQ" },
+    { "name": "Fireship", "topic": "tech", "channelId": "UCsBjURrPoezykLs9EqgamOA" },
 
     { "name": "Two Minute Papers", "topic": "ai", "channelId": "UCbfYPyITQ-7l4upoX8nvctg" },
     { "name": "Yannic Kilcher", "topic": "ai", "channelId": "UCZHmQk67mSJgfCCTn7xBfew" },
     { "name": "AI Explained", "topic": "ai", "channelId": "UCNJ1Ymd5yFuUPtn21xtRbbw" },
-    { "name": "Matt Wolfe", "topic": "ai", "channelId": "UChpleBmo18P08aKCIgti38g" },
+    { "name": "Andrej Karpathy", "topic": "ai", "channelId": "UCXUPKJO5MZQN11PqgIvyuvQ" },
+    { "name": "3Blue1Brown", "topic": "ai", "channelId": "UCYO_jab_esuFRV4b17AJtAw" },
+    { "name": "StatQuest", "topic": "ai", "channelId": "UCtYLUTtgS3k1Fg4y5tAhLbw" },
+    { "name": "DeepLearningAI", "topic": "ai", "channelId": "UCcIXc5mJsHVYTZR1maL5l9w" },
+    { "name": "Computerphile", "topic": "ai", "channelId": "UC9-y-6csu5WGm29I7JiwpnA" },
+    { "name": "sentdex", "topic": "ai", "channelId": "UCfzlCWGWYyIQ0aLC5w48gBQ" },
     { "name": "OpenAI", "topic": "ai", "channelId": "UCXZCJLdBC09xxGZ6gcdrc6A" },
     { "name": "Google DeepMind", "topic": "ai", "channelId": "UCP7jMXSY2xbc3KCAE0MHQ-A" },
     { "name": "Anthropic", "topic": "ai", "channelId": "UCrDwWp7EBBv4NwvScIpBDOA" },
-    { "name": "3Blue1Brown", "topic": "ai", "channelId": "UCYO_jab_esuFRV4b17AJtAw" },
-    { "name": "Fireship", "topic": "ai", "channelId": "UCsBjURrPoezykLs9EqgamOA" },
 
-    { "name": "IGN", "topic": "games", "channelId": "UCKy1dAqELo0zrOtPkf0eTMw" },
-    { "name": "GameSpot", "topic": "games", "channelId": "UCbu2SsF-Or3Rsn3NxqODImw" },
-    { "name": "Digital Foundry", "topic": "games", "channelId": "UC9PBzalIcEQCsiIkq36PyUA" },
-    { "name": "Skill Up", "topic": "games", "channelId": "UCZ7AeeVbyslLM_8-nVy2B8Q" },
-    { "name": "Nintendo of America", "topic": "games", "channelId": "UCGIY_O-8vW4rfX98KlMkvRg" },
-    { "name": "PlayStation", "topic": "games", "channelId": "UC-2Y8dQb0S6DtpxNgAKoJKA" },
-    { "name": "Xbox", "topic": "games", "channelId": "UCydtMNspoPAlqBjFSGnigSw" },
-
+    { "name": "ICC", "topic": "sports", "channelId": "UCt2JXOLNxqry7B_4rRZME3Q" },
+    { "name": "Cricinfo", "topic": "sports", "channelId": "UCujuVKmt_utAQZJghxlRMIQ" },
+    { "name": "cricket.com.au", "topic": "sports", "channelId": "UCkBY0aHJP9BwjZLDYxAQrKg" },
+    { "name": "Star Sports", "topic": "sports", "channelId": "UC2iihojySb58j_Q4zL7VI5w" },
+    { "name": "UEFA Champions League", "topic": "sports", "channelId": "UCLcSuj4B8YyUVJdVDeozFQg" },
+    { "name": "FIFA", "topic": "sports", "channelId": "UCpcTrCXblq78GZrTUTLWeBw" },
+    { "name": "B/R Football", "topic": "sports", "channelId": "UClvow1RFSyeh5CRwRB_m5sA" },
+    { "name": "NBA", "topic": "sports", "channelId": "UCWJ2lWNubArHWmf3FIHbfcQ" },
+    { "name": "NBA on ESPN", "topic": "sports", "channelId": "UCVSSpcmZD2PwPBqb8yKQKBA" },
+    { "name": "Olympics", "topic": "sports", "channelId": "UCTl3QQTvqHFjurroKxexy2Q" },
     { "name": "ESPN", "topic": "sports", "channelId": "UCiWLfSweyRNmLpgEHekhoAg" },
     { "name": "Sky Sports", "topic": "sports", "channelId": "UCTU_wC79Dgi9rh4e9-baTqA" },
-    { "name": "NBA", "topic": "sports", "channelId": "UCWJ2lWNubArHWmf3FIHbfcQ" },
-    { "name": "FORMULA 1", "topic": "sports", "channelId": "UCB_qr75-ydFVKSF9Dmo6izg" },
-    { "name": "Olympics", "topic": "sports", "channelId": "UCTl3QQTvqHFjurroKxexy2Q" },
-    { "name": "B/R Football", "topic": "sports", "channelId": "UClvow1RFSyeh5CRwRB_m5sA" },
-    { "name": "UEFA Champions League", "topic": "sports", "channelId": "UCLcSuj4B8YyUVJdVDeozFQg" },
 
-    { "name": "Kurzgesagt", "topic": "lifestyle", "channelId": "UCsXVk37bltHxD1rDPwtNM8Q" },
-    { "name": "Doctor Mike", "topic": "lifestyle", "channelId": "UC0QHWhjbe5fGJEPz3sVb6nw" },
-    { "name": "Joshua Weissman", "topic": "lifestyle", "channelId": "UChBEbMKI1eCcejTtmI32UEw" },
-    { "name": "Binging with Babish", "topic": "lifestyle", "channelId": "UCJHA_jMfCvEnv-3kRjTCQXw" },
-    { "name": "Bon Appétit", "topic": "lifestyle", "channelId": "UCbpMy0Fg74eXXkvxJrtEn3w" },
-    { "name": "Yes Theory", "topic": "lifestyle", "channelId": "UCvK4bOhULCpmLabd2pDMtnA" },
-    { "name": "Ali Abdaal", "topic": "lifestyle", "channelId": "UCoOae5nYA7VqaXzerajD0lg" },
-    { "name": "Peter McKinnon", "topic": "lifestyle", "channelId": "UC3DkFux8Iv-aYnTRWzwaiBA" },
-
-    { "name": "MrBeast", "topic": "youtube", "channelId": "UCX6OQ3DkcsbYNE6H8uQQuVA" },
-    { "name": "Veritasium", "topic": "youtube", "channelId": "UCHnyfMqiRRG1u-2MsSQLbXA" },
-    { "name": "Mark Rober", "topic": "youtube", "channelId": "UCY1kMZp36IQSyNx_9h4mpCg" },
-    { "name": "Colin and Samir", "topic": "youtube", "channelId": "UCamLstJyCa-t5gfZegxsFMw" },
-    { "name": "Creator Insider", "topic": "youtube", "channelId": "UCGg-UqjRgzhYDPJMr-9HXCg" },
-    { "name": "YouTube", "topic": "youtube", "channelId": "UCBR8-60-B28hp2BmDPdntcQ" },
-    { "name": "Johnny Harris", "topic": "youtube", "channelId": "UCmGSJVG3mCRXVOP4yZrU1Dw" },
-    { "name": "Cleo Abram", "topic": "youtube", "channelId": "UC415bOPUcGSamy543abLmRA" },
-    { "name": "Michelle Khare", "topic": "youtube", "channelId": "UCGGZ_POGmIWG1pQXTDzQv-g" },
-    { "name": "Dude Perfect", "topic": "youtube", "channelId": "UCRijo3ddMTht_IHyNSNXpNQ" },
-    { "name": "Airrack", "topic": "youtube", "channelId": "UCyps-v4WNjWDnYRKmZ4BUGw" }
+    { "name": "IGN", "topic": "games", "channelId": "UCKy1dAqELo0zrOtPkf0eTMw", "board": false },
+    { "name": "GameSpot", "topic": "games", "channelId": "UCbu2SsF-Or3Rsn3NxqODImw", "board": false },
+    { "name": "Digital Foundry", "topic": "games", "channelId": "UC9PBzalIcEQCsiIkq36PyUA", "board": false },
+    { "name": "Skill Up", "topic": "games", "channelId": "UCZ7AeeVbyslLM_8-nVy2B8Q", "board": false },
+    { "name": "PlayStation", "topic": "games", "channelId": "UC-2Y8dQb0S6DtpxNgAKoJKA", "board": false },
+    { "name": "Xbox", "topic": "games", "channelId": "UCydtMNspoPAlqBjFSGnigSw", "board": false },
+    { "name": "Nintendo of America", "topic": "games", "channelId": "UCGIY_O-8vW4rfX98KlMkvRg", "board": false }
   ]
 }

@@ -45,11 +45,11 @@ const MAX_AGE_DAYS = 21
  * and it is few enough that every one of them can be enriched by fetching the
  * page (see enrichArticle) inside a single scheduled run.
  */
-const PER_TOPIC_LIMIT = 20
-/** Slots one publisher may hold in a section of twenty, before backfill. */
-const PER_SOURCE_CAP = 5
-/** Front-page rotation. Five sections at four each, then the ranking decides. */
-const HIGHLIGHT_LIMIT = 40
+const PER_TOPIC_LIMIT = 15
+/** Slots one publisher may hold in a section, before backfill. */
+const PER_SOURCE_CAP = 4
+/** Front-page rotation. Seven sections at a handful each, then ranking decides. */
+const HIGHLIGHT_LIMIT = 42
 /** The card dek. Two or three lines under a headline. */
 const SUMMARY_MAX = 300
 /**
@@ -65,6 +65,16 @@ const SUMMARY_MIN_AFTER_STRIP = 40
 /** Paragraphs of real reporting kept for the reader, beyond the dek. */
 const BODY_MAX_PARAGRAPHS = 4
 const BODY_MAX_CHARS = 1200
+/**
+ * The reader shows bullets rather than paragraphs, so the excerpt is reduced to
+ * a handful of the most informative sentences. Four is the point where a reader
+ * still takes the whole thing in at a glance.
+ */
+const POINTS_MAX = 4
+const POINT_MAX_CHARS = 200
+/** A sentence outside this range is a fragment or a paragraph, not a point. */
+const POINT_MIN_CHARS = 45
+const POINT_SOURCE_MAX = 320
 /** A candidate paragraph outside this range is furniture, not prose. */
 const PARAGRAPH_MIN = 60
 const PARAGRAPH_MAX = 700
@@ -315,6 +325,22 @@ const BOILERPLATE_RULES = [
   {
     name: 'continuationMarkers',
     re: /\s*(?:\[\s*(?:…|\.{2,})\s*\]|\bContinue reading\b[^.]{0,80}|\bRead (?:more|the full story|the full article)\b[^.]{0,80})\s*[.…]*/gi,
+  },
+  // Ars Technica ships a bare "Enlarge" as the lead-image link text.
+  { name: 'enlargeMarker', re: /^Enlarge\s*\/?\s*/ },
+  // A picture credit that arrived as body text rather than a <figcaption>:
+  // "CT scan of a narwhal tusk: Credit: Adrian Rodriguez Palomo/CC BY-NC."
+  // Anchored to the start and bounded, so a "Credit:" inside real prose later in
+  // the piece is left alone.
+  {
+    name: 'leadingCredit',
+    re: /^(?:Enlarge\s*\/?\s*)?[^.]{0,120}?\b(?:Credit|Photo|Image|Photograph|Illustration|Picture)s?\s*:\s*[^.]{1,90}\.\s+(?=[A-Z])/,
+  },
+  // A label the publisher set as a bold run rather than a heading, so it
+  // arrived welded to the first sentence: "Summary Clash Royale is updating…".
+  {
+    name: 'leadingLabel',
+    re: /^\s*(?:summary|overview|tl;?\s?dr|in short|key points?|the gist)\s*[:\-\u2013\u2014]?\s+(?=[A-Z])/i,
   },
   // Trailing attribution: "Source: Foo" / "via Foo".
   { name: 'trailingSource', re: /\s*(?:Source\s*:\s*|[Vv]ia\s+)[A-Z][^.\n]{0,40}\s*$/ },
@@ -578,6 +604,19 @@ const LOW_VALUE_TITLE = new RegExp(
   'i'
 )
 
+/**
+ * True when a feed with a `match` list has nothing to do with this section. No
+ * publisher runs a Clash Royale feed, so that section is built by taking the
+ * mobile-gaming and esports feeds and keeping only what mentions the games.
+ * Matched against the headline and the raw summary, since a match in the body
+ * alone usually means the story is about something else entirely.
+ */
+function matchesFeed(feed, title, summary) {
+  if (!Array.isArray(feed.match) || feed.match.length === 0) return true
+  const haystack = `${title} ${summary}`.toLowerCase()
+  return feed.match.some((term) => haystack.includes(String(term).toLowerCase()))
+}
+
 function normalizeItem(item, feed, topic) {
   const title = stripHtml(text(item.title))
   const url = itemLink(item, feed.url)
@@ -605,7 +644,10 @@ function normalizeItem(item, feed, topic) {
    * is the only excerpt the reader will ever get. enrichArticle overrides this
    * later only if the page turns out to give more.
    */
+  if (!matchesFeed(feed, title, summary)) return null
+
   const body = buildBody(htmlParagraphs(pickContentHtml(item)), summary)
+  const points = buildPoints(summary, body, title)
 
   const author = stripHtml(
     text(item['dc:creator']) || text(item.author?.name) || text(item.author) || ''
@@ -621,6 +663,7 @@ function normalizeItem(item, feed, topic) {
     url,
     summary,
     body,
+    points,
     image,
     imageFrom: image ? 'feed' : null,
     imageCredit: null,
@@ -882,10 +925,12 @@ async function enrichArticle(article) {
   const weight = (body) => body.reduce((sum, p) => sum + p.length, 0)
   if (weight(fromPage) > weight(article.body)) article.body = fromPage
 
+  // The bullets are only as good as the text they were drawn from, and the page
+  // has usually just improved on the feed.
+  article.points = buildPoints(article.summary, article.body, article.title)
+
   return article
 }
-
-// --- Related artwork, for the few stories that still have none --------------
 
 const STOPWORDS = new Set(
   ('the a an and or but for nor of to in on at by from with without as is are was were be been ' +
@@ -895,6 +940,115 @@ const STOPWORDS = new Set(
     'up down out off again once all any both each few other some such only own same too very s t don ' +
     'you we they he she i me him them us if because while during against between among').split(' ')
 )
+
+// --- The short version -----------------------------------------------------
+
+/*
+ * Bullets, not paragraphs.
+ *
+ * A news app is read standing up, so the reader leads with three or four points
+ * rather than an excerpt you have to work through. These are extracted, never
+ * generated: each bullet is a sentence the publisher actually wrote, picked for
+ * how much it carries. Nothing is paraphrased, because paraphrasing someone
+ * else's reporting without their words is how a summary starts saying things the
+ * article did not.
+ */
+
+/** Split prose into sentences without breaking on "U.S." or "Mr. Smith". */
+function splitSentences(text) {
+  const guarded = String(text)
+    .replace(/\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|Inc|Ltd|Co|Corp|Gen|Sgt|Capt|Rev|Hon|Est|approx|No)\.\s/g,
+      (m) => m.replace('.', '\u0001'))
+    // Initials and acronyms: U.S., U.K., A.I., 3.5, $1.2bn.
+    .replace(/\b([A-Z])\.(?=[A-Z]\.)/g, '$1\u0001')
+    .replace(/\b([A-Z])\.(?=\s[a-z])/g, '$1\u0001')
+    .replace(/(\d)\.(?=\d)/g, '$1\u0001')
+
+  return guarded
+    // A truncation ellipsis ends a sentence too, and treating it as one is what
+    // stops a cut-off dek from being welded to the paragraph that follows it.
+    .split(/(?<=[.!?\u2026])["\u2019\u201d)]?\s+(?=["\u201c(]?[A-Z0-9])/)
+    .map((part) => part.replace(/\u0001/g, '.').trim())
+    .filter(Boolean)
+}
+
+/** Words the headline is about, used to score a sentence's relevance. */
+function titleTerms(title) {
+  return new Set(
+    proseKey(title)
+      .split(' ')
+      .filter((word) => word.length > 3 && !STOPWORDS.has(word))
+  )
+}
+
+/**
+ * How much a sentence earns its place: does it name what the headline is about,
+ * does it carry a figure, a date or a quote — the things a reader is actually
+ * scanning for — and is it a sentence rather than a fragment or a whole
+ * paragraph. Earlier sentences win ties, because news is written top-down.
+ */
+function scoreSentence(sentence, terms, index) {
+  const key = proseKey(sentence)
+  const words = key.split(' ')
+  if (words.length < 8) return -1
+
+  let score = Math.max(0, 14 - index * 1.6)
+  const overlap = words.filter((word) => terms.has(word)).length
+  score += Math.min(12, overlap * 3)
+  if (/\d/.test(sentence)) score += 5
+  if (/[\u201c"\u2019']\s?[A-Z]/.test(sentence)) score += 3
+  if (/\b(said|says|announced|confirmed|reported|according to|will|plans to|expected)\b/i.test(sentence)) score += 4
+  if (/\b(per cent|percent|%|\$|\u00a3|\u20ac|million|billion)\b/i.test(sentence)) score += 3
+  // Length: reward a full sentence, punish a paragraph masquerading as one.
+  if (sentence.length > POINT_SOURCE_MAX) score -= 8
+  else if (sentence.length < POINT_MIN_CHARS) score -= 6
+  if (/\b(subscribe|newsletter|sign up|cookie|advertisement|follow us)\b/i.test(sentence)) score -= 20
+  // An ellipsis means the source text was already cut short. Usable, but a
+  // whole sentence saying the same thing is always better.
+  if (/\u2026|\.\.\./.test(sentence)) score -= 7
+  // A sentence past the cap will be cut mid-thought, so a shorter one that says
+  // as much is worth more.
+  if (sentence.length > POINT_MAX_CHARS) score -= 5
+  return score
+}
+
+/**
+ * Turn a story's dek and excerpt into the points the reader shows. Kept in the
+ * order the publisher wrote them, so the bullets still read as an account of
+ * events rather than a ranked list of facts.
+ */
+function buildPoints(summary, body, title) {
+  const terms = titleTerms(title)
+  const seen = new Set()
+  const candidates = []
+
+  /*
+   * Each source block is split on its own rather than concatenated first. The
+   * dek is a truncated string, so joining it to the body made its cut-off tail
+   * and the article's opening line into one impossible sentence.
+   */
+  const sentences = [summary, ...body].flatMap((block) => splitSentences(block))
+
+  for (const sentence of sentences) {
+    if (sentence.length < POINT_MIN_CHARS) continue
+    const key = proseKey(sentence).slice(0, 48)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    const index = candidates.length
+    const score = scoreSentence(sentence, terms, index)
+    if (score <= 0) continue
+    candidates.push({ sentence, score, index })
+  }
+
+  return candidates
+    .sort((a, b) => b.score - a.score)
+    .slice(0, POINTS_MAX)
+    .sort((a, b) => a.index - b.index)
+    .map((candidate) => truncate(candidate.sentence, POINT_MAX_CHARS))
+}
+
+// --- Related artwork, for the few stories that still have none --------------
+
 
 /**
  * Two or three words that name what the story is about. Proper nouns first —
@@ -1057,6 +1211,7 @@ function normalizeVideo(entry, creator) {
     url: `https://www.youtube.com/watch?v=${videoId}`,
     summary,
     body: summary ? paragraphs.slice(1, BODY_MAX_PARAGRAPHS) : paragraphs.slice(0, BODY_MAX_PARAGRAPHS),
+    points: buildPoints(summary, paragraphs, title),
     // Upgraded to the 16:9 master in bestThumbnail once the run knows it exists.
     image: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
     imageFrom: 'video',
@@ -1069,6 +1224,8 @@ function normalizeVideo(entry, creator) {
     publishedAt: parseDate(entry.published, entry.updated),
     videoId,
     channel,
+    /** False for channels that feed their section rail but not the board. */
+    onBoard: creator.board !== false,
     channelUrl: `https://www.youtube.com/channel/${creator.channelId}`,
     views: Number.isFinite(views) && views > 0 ? views : null,
     likes: Number.isFinite(rating) && rating > 0 ? rating : null,
@@ -1388,7 +1545,10 @@ async function main() {
    * question — a phone launch review and a Champions League highlight reel are
    * both on it. Two per channel keeps one prolific uploader from owning it.
    */
-  const trending = spreadBySource(rankedVideos, 2).slice(0, YOUTUBE_LIMIT)
+  const trending = spreadBySource(
+    rankedVideos.filter((video) => video.onBoard),
+    2
+  ).slice(0, YOUTUBE_LIMIT)
 
   // ---- 3. Enrich --------------------------------------------------------
 
@@ -1415,6 +1575,9 @@ async function main() {
   const shownVideos = dedupe([...trending, ...topicNames.flatMap((t) => videosByTopic.get(t))])
   await mapLimit(shownVideos, ENRICH_CONCURRENCY, (video) => bestThumbnail(video))
 
+  /** `onBoard` is a scheduling detail; the app has no use for it. */
+  const forPublication = ({ onBoard, ...video }) => video
+
   // ---- 4. Write ---------------------------------------------------------
 
   await mkdir(OUT_DIR, { recursive: true })
@@ -1431,7 +1594,13 @@ async function main() {
 
     await writeFile(
       resolve(OUT_DIR, `${topic}.json`),
-      `${JSON.stringify({ topic, generatedAt, count: articles.length, articles, videos })}\n`
+      `${JSON.stringify({
+        topic,
+        generatedAt,
+        count: articles.length,
+        articles,
+        videos: videos.map(forPublication),
+      })}\n`
     )
 
     topicSummaries.push({
@@ -1458,7 +1627,7 @@ async function main() {
       topic: VIDEO_TOPIC,
       generatedAt,
       count: trending.length,
-      articles: trending.map((video) => ({ ...video, topic: VIDEO_TOPIC })),
+      articles: trending.map((video) => ({ ...forPublication(video), topic: VIDEO_TOPIC })),
       videos: [],
     })}\n`
   )
@@ -1498,7 +1667,7 @@ async function main() {
       failures: failures.map((f) => ({ feed: f.feed, reason: f.reason })),
       highlights,
       /** A short rail on the front page; the full board lives in youtube.json. */
-      videos: trending.slice(0, 8),
+      videos: trending.slice(0, 8).map(forPublication),
     })}\n`
   )
 

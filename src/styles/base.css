@@ -52,26 +52,23 @@ body {
 /* ---------------------------------------------------------------------------
  * The X field
  *
- * A fixed, non-interactive layer that everything else floats over: a tiled X
- * screen drifting diagonally, two slow colour blooms, and one huge outlined X
- * turning behind the page. It is deliberately faint — the job is to give the
- * white panels something to be above, not to compete with a headline.
+ * A fixed, non-interactive layer that everything else floats over: two tiled
+ * fields of outlined X marks drifting diagonally at different rates, and one
+ * huge mark turning slowly behind them. The marks are traced in coral-red
+ * hairlines on white, so what shows in the gutters between cards is line work
+ * rather than a wash of colour.
  *
- * All three layers animate transform or background-position only, so the whole
- * thing stays on the compositor and never triggers layout. The global
- * reduced-motion rule above freezes it in place rather than removing it.
+ * Every layer animates transform only. That keeps the whole field on the
+ * compositor — no layout, no paint, no repeated background-position arithmetic —
+ * which is what makes the drift smooth on a phone. Each layer travels exactly
+ * one tile period, so the loop point is invisible.
+ *
+ * z-index: -1, not 0. A fixed element with z-index 0 is still a *positioned*
+ * element, and CSS paints every positioned box after all the in-flow static
+ * ones — at 0 this opaque layer covered the footer while leaving the cards
+ * visible, because cards are position: relative and later in tree order.
  * ------------------------------------------------------------------------- */
 
-/*
- * z-index: -1, not 0.
- *
- * A fixed element with z-index 0 is still a *positioned* element, and CSS paints
- * every positioned box after all the in-flow static ones — so at z-index 0 this
- * opaque layer covered the footer and the section intros while leaving the cards
- * visible, because cards are position: relative and later in tree order. A
- * negative index puts it behind the whole of #root, which is the only thing that
- * makes it a background rather than a sheet of white paint.
- */
 .xfield {
   position: fixed;
   inset: 0;
@@ -81,96 +78,71 @@ body {
   background: var(--page);
 }
 
+/*
+ * Oversized well past the viewport on every side, so a layer mid-travel never
+ * exposes its own edge.
+ */
 .xfield__grid {
   position: absolute;
-  /* Oversized so the drift never exposes an edge. */
-  inset: -20%;
-  background-image: var(--xtile);
-  background-size: 84px 84px;
-  opacity: 0.055;
-  animation: x-drift 34s linear infinite;
-}
-
-/* A second, larger pass at a different speed: two rates read as depth, one
-   reads as a moving wallpaper. */
-.xfield__grid--slow {
-  background-size: 172px 172px;
-  opacity: 0.035;
-  animation-duration: 76s;
-  animation-direction: reverse;
-}
-
-@keyframes x-drift {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 84px 84px;
-  }
-}
-
-.xfield__bloom {
-  position: absolute;
-  width: 46vmax;
-  height: 46vmax;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.16;
+  top: -60%;
+  left: -60%;
+  width: 220%;
+  height: 220%;
+  background-repeat: repeat;
   will-change: transform;
 }
 
-.xfield__bloom--one {
-  top: -14vmax;
-  left: -10vmax;
-  background: var(--accent);
-  animation: bloom-a 26s var(--ease-in-out) infinite;
+.xfield__grid--red {
+  background-image: var(--xtile);
+  background-size: 420px 420px;
+  opacity: 0.5;
+  animation: x-drift-red 64s linear infinite;
 }
 
-.xfield__bloom--two {
-  right: -14vmax;
-  bottom: -16vmax;
-  background: var(--pop);
-  opacity: 0.2;
-  animation: bloom-b 34s var(--ease-in-out) infinite;
+/* A second pass in graphite, larger and slower: two rates read as depth, one
+   rate reads as a moving wallpaper. */
+.xfield__grid--ink {
+  background-image: var(--xtile-ink);
+  background-size: 620px 620px;
+  opacity: 0.1;
+  animation: x-drift-ink 132s linear infinite reverse;
 }
 
-@keyframes bloom-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
+@keyframes x-drift-red {
+  from {
+    transform: translate3d(0, 0, 0);
   }
-  50% {
-    transform: translate3d(12vw, 8vh, 0) scale(1.18);
-  }
-}
-
-@keyframes bloom-b {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1.1);
-  }
-  50% {
-    transform: translate3d(-10vw, -7vh, 0) scale(1);
+  to {
+    transform: translate3d(420px, 420px, 0);
   }
 }
 
-/* The hero X: one big outlined mark, turning slowly. */
+@keyframes x-drift-ink {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(620px, 620px, 0);
+  }
+}
+
+/* The hero mark: one enormous outlined X, turning slowly. */
 .xfield__mark {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(126vh, 118vw);
-  height: min(126vh, 118vw);
-  margin: calc(min(126vh, 118vw) / -2) 0 0 calc(min(126vh, 118vw) / -2);
-  opacity: 0.07;
-  animation: x-turn 120s linear infinite;
+  width: min(130vh, 122vw);
+  height: min(130vh, 122vw);
+  margin: calc(min(130vh, 122vw) / -2) 0 0 calc(min(130vh, 122vw) / -2);
+  opacity: 0.16;
+  animation: x-turn 150s linear infinite;
+  will-change: transform;
 }
 
 .xfield__mark path {
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 8;
-  stroke-linecap: round;
+  stroke: var(--x-line);
+  stroke-width: 0.5;
 }
 
 @keyframes x-turn {
@@ -182,14 +154,14 @@ body {
   }
 }
 
-/* On a phone the blooms are the expensive part and the least visible, so the
-   field falls back to the drifting screen alone. */
+/* On a phone the field is mostly hidden behind full-width cards, so it drops to
+   the red pass alone — one animated layer instead of three. */
 @media (max-width: 700px) {
-  .xfield__bloom {
+  .xfield__grid--ink {
     display: none;
   }
   .xfield__mark {
-    opacity: 0.05;
+    opacity: 0.12;
   }
 }
 

@@ -363,31 +363,52 @@ export function Reader({
             whether you care — and only then offer the link. A reader that leads
             with a button is a redirect with extra steps.
           */}
-          {article.summary ? (
-            <p
-              className={`reader__lede${article.summary.length > 150 ? ' reader__lede--drop' : ''}`}
-            >
-              {article.summary}
-            </p>
-          ) : (
-            <p className="reader__lede reader__lede--bare">
-              {article.source} published this one without a summary, so there is nothing
-              to preview here.
-            </p>
-          )}
+          {/*
+            The dek is only set as a lede when there are no points. The points are
+            drawn from the dek as well as the body, so showing both means reading
+            the same sentence twice — once in a drop-capped paragraph and again as
+            the first bullet.
+          */}
+          {article.points.length === 0 &&
+            (article.summary ? (
+              <p
+                className={`reader__lede${article.summary.length > 150 ? ' reader__lede--drop' : ''}`}
+              >
+                {article.summary}
+              </p>
+            ) : (
+              <p className="reader__lede reader__lede--bare">
+                {article.source} published this one without a summary, so there is nothing
+                to preview here.
+              </p>
+            ))}
 
           {/*
-            The paragraphs the pipeline lifted out of the article itself. This is
-            what makes opening a story worth the tap: enough of the reporting to
-            know what happened, and to decide whether the rest is worth a trip to
-            somebody else's site.
+            The short version. A news app is read standing up, so what the
+            pipeline pulled out of the article arrives as three or four points
+            rather than as paragraphs to work through — and every point is a
+            sentence the publisher wrote, not a paraphrase of one.
+
+            The paragraph fallback stays for the handful of stories where no
+            sentence scored well enough to be worth bulleting.
           */}
-          {article.body.length > 0 && (
-            <div className="reader__body">
-              {article.body.map((paragraph) => (
-                <p key={paragraph.slice(0, 40)}>{paragraph}</p>
-              ))}
+          {article.points.length > 0 ? (
+            <div className="reader__points">
+              <p className="reader__points-label">The short version</p>
+              <ul>
+                {article.points.map((point) => (
+                  <li key={point.slice(0, 40)}>{point}</li>
+                ))}
+              </ul>
             </div>
+          ) : (
+            article.body.length > 0 && (
+              <div className="reader__body">
+                {article.body.map((paragraph) => (
+                  <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+                ))}
+              </div>
+            )
           )}
 
           {/*
@@ -399,8 +420,8 @@ export function Reader({
             <p className="reader__handoff-text">
               {article.kind === 'video'
                 ? `${article.channel ?? article.source} published this on YouTube.`
-                : article.body.length
-                  ? `That is the opening of the piece. ${article.source} has the rest.`
+                : article.points.length || article.body.length
+                  ? `That is the gist. ${article.source} has the full piece.`
                   : article.summary
                     ? `Want the rest? ${article.source} has the full story.`
                     : `${article.source} has the full story on their site.`}

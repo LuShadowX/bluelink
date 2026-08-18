@@ -14,6 +14,8 @@ const SHOTS = [
   { name: 'front-full', hash: '#/', full: true },
   { name: 'tech', hash: '#/tech', full: false },
   { name: 'youtube', hash: '#/youtube', full: false },
+  { name: 'arena', hash: '#/arena', full: false },
+  { name: 'movies', hash: '#/movies', full: false },
 ]
 
 const VIEWPORTS = [

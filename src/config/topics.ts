@@ -1,4 +1,12 @@
-export type TopicId = 'tech' | 'ai' | 'sports' | 'games' | 'lifestyle' | 'youtube'
+export type TopicId =
+  | 'tech'
+  | 'ai'
+  | 'sports'
+  | 'games'
+  | 'arena'
+  | 'movies'
+  | 'lifestyle'
+  | 'youtube'
 
 export interface Topic {
   id: TopicId
@@ -19,9 +27,9 @@ export interface Topic {
 }
 
 /*
- * Six saturated hues that have to sit next to each other on one white page, so
- * each is picked to be unmistakable at the size of a nav pill: blue, violet,
- * green, magenta, orange, red. No two share a neighbour on the wheel.
+ * Eight saturated hues that have to sit next to each other on one white page, so
+ * each is picked to be unmistakable at the size of a nav pill and dark enough to
+ * carry white type: blue, violet, green, magenta, gold, teal, orange, red.
  */
 export const TOPICS: readonly Topic[] = [
   {
@@ -59,6 +67,24 @@ export const TOPICS: readonly Topic[] = [
     accent: '#EC1E79',
     deep: '#96114B',
     wash: 'rgba(236, 30, 121, 0.10)',
+  },
+  {
+    id: 'arena',
+    label: 'Clash·Brawl',
+    kicker: 'Clash Royale & Brawl Stars',
+    blurb: 'Balance changes, meta shifts and what the pros are running.',
+    accent: '#B45309',
+    deep: '#7C3A06',
+    wash: 'rgba(180, 83, 9, 0.10)',
+  },
+  {
+    id: 'movies',
+    label: 'Movies',
+    kicker: 'Film',
+    blurb: 'Releases, casting, box office and the people behind the frame.',
+    accent: '#0E7490',
+    deep: '#08505F',
+    wash: 'rgba(14, 116, 144, 0.10)',
   },
   {
     id: 'lifestyle',
