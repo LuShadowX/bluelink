@@ -92,7 +92,18 @@ const YOUTUBE_LIMIT = 20
 /** A three-week-old upload is not what is trending right now. */
 const VIDEO_MAX_AGE_DAYS = 12
 /** How far down the video ranking the Shorts check bothers to look. */
-const SHORTS_CHECK_LIMIT = 120
+const SHORTS_CHECK_LIMIT = 60
+/**
+ * YouTube is fetched far more gently than the news feeds.
+ *
+ * The channel feeds and the Shorts probe all hit one host, and 51 channels in a
+ * burst — plus a HEAD for every candidate — is enough to get that host answering
+ * 404 to everything for a while. It is not an outage and not the User-Agent: the
+ * same request succeeds again later. So the pull is narrow, spaced, and retried.
+ */
+const CREATOR_CONCURRENCY = 4
+const CREATOR_RETRIES = 3
+const CREATOR_RETRY_MS = 700
 
 // ---------------------------------------------------------------------------
 // XML
@@ -1339,6 +1350,10 @@ async function fetchCreator(creator) {
  * checked rather than assumed.
  */
 async function bestThumbnail(video) {
+  // A video held over from a previous edition has already been through this, and
+  // re-probing it would be two more requests to the host that is throttling us.
+  if (!/\/(?:hq|mq)default\.jpg$/.test(video.image ?? '')) return video
+
   for (const name of ['maxresdefault', 'hq720']) {
     const candidate = `https://i.ytimg.com/vi/${video.videoId}/${name}.jpg`
     try {
@@ -1376,6 +1391,29 @@ function videoScore(video, now) {
   const substance = (video.summary.length > 80 ? 6 : video.summary ? 2 : -10) +
     (video.title.length < 26 ? -8 : 0)
   return velocity + recency + substance
+}
+
+/**
+ * Retry a fetch that failed in a way that looks transient.
+ *
+ * Deliberately treats 404 as retryable, which is normally wrong — but this is
+ * only used for YouTube's feed endpoint, which answers 404 when it is shedding
+ * load rather than when a channel is missing. A channel that is genuinely gone
+ * costs three requests and then drops out; one that is merely throttled comes
+ * back, which is the difference between a full video rail and an empty one.
+ */
+async function withRetry(attempt, attempts = CREATOR_RETRIES, delayMs = CREATOR_RETRY_MS) {
+  let last = null
+  for (let tries = 0; tries < attempts; tries += 1) {
+    if (tries > 0) {
+      // Spread the retries out so they do not arrive as another burst.
+      const jitter = delayMs * tries + Math.floor(((tries * 37) % 11) * 40)
+      await new Promise((resolve) => setTimeout(resolve, jitter))
+    }
+    last = await attempt()
+    if (last.ok && last.items.length) return last
+  }
+  return last
 }
 
 // ---------------------------------------------------------------------------
@@ -1518,6 +1556,42 @@ function spreadBySource(items, maxRun = 2) {
 // Main
 // ---------------------------------------------------------------------------
 
+/**
+ * Whatever the last run wrote, if it is still on disk.
+ *
+ * In CI that is the copy the checkout brought along, which is what makes
+ * carrying an edition forward possible at all.
+ */
+async function previousEdition(topic) {
+  try {
+    return JSON.parse(await readFile(resolve(OUT_DIR, `${topic}.json`), 'utf8'))
+  } catch {
+    // First ever run, or the file is unreadable. Nothing to carry.
+    return null
+  }
+}
+
+/**
+ * Videos from a previous edition that are still worth showing: inside the same
+ * age window a fresh pull would use, and de-duplicated.
+ *
+ * This exists because of how YouTube fails. When it starts shedding load, every
+ * channel feed 404s at once and the honest result of the run is zero videos —
+ * which would empty every rail in the app on the strength of a bad five minutes.
+ * The uploads from four hours ago are still real uploads, so they stay up until
+ * a pull actually succeeds.
+ */
+function carryVideos(previous, cutoff, limit) {
+  const kept = []
+  for (const video of previous ?? []) {
+    if (!video || video.kind !== 'video') continue
+    if ((Date.parse(video.publishedAt ?? '') || 0) < cutoff) continue
+    kept.push(video)
+    if (kept.length >= limit) break
+  }
+  return kept
+}
+
 /** The YouTube board is a section in the app but has no RSS newsroom. */
 const VIDEO_TOPIC = 'youtube'
 const REFRESH_HOURS = 4
@@ -1541,6 +1615,12 @@ async function main() {
     for (const feed of config[topic]) jobs.push({ topic, feed })
   }
 
+  const previous = new Map(
+    await Promise.all(
+      [...topicNames, VIDEO_TOPIC].map(async (topic) => [topic, await previousEdition(topic)])
+    )
+  )
+
   console.log(
     `\n  BlueLink · ${jobs.length} feeds across ${topicNames.length} sections` +
       ` · ${creators.length} YouTube channels\n`
@@ -1550,7 +1630,9 @@ async function main() {
 
   const [results, creatorResults] = await Promise.all([
     mapLimit(jobs, CONCURRENCY, ({ feed, topic }) => fetchFeed(feed, topic)),
-    mapLimit(creators, CONCURRENCY, (creator) => fetchCreator(creator)),
+    mapLimit(creators, CREATOR_CONCURRENCY, (creator) =>
+      withRetry(() => fetchCreator(creator))
+    ),
   ])
 
   const byTopic = new Map()
@@ -1615,15 +1697,23 @@ async function main() {
   for (const video of rankedVideos) {
     videosByTopic.get(video.topic)?.push(video)
   }
+  let carried = 0
   for (const topic of topicNames) {
-    videosByTopic.set(
-      topic,
+    const fresh = capBySource(
+      videosByTopic.get(topic),
+      3,
+      VIDEOS_PER_TOPIC,
       // Keyed on the channel: every video shares one host.
-      capBySource(videosByTopic.get(topic), 3, VIDEOS_PER_TOPIC, (v) => v.source).slice(
-        0,
-        VIDEOS_PER_TOPIC
-      )
-    )
+      (v) => v.source
+    ).slice(0, VIDEOS_PER_TOPIC)
+
+    if (fresh.length) {
+      videosByTopic.set(topic, fresh)
+      continue
+    }
+    const held = carryVideos(previous.get(topic)?.videos, videoCutoff, VIDEOS_PER_TOPIC)
+    carried += held.length
+    videosByTopic.set(topic, held)
   }
 
   /*
@@ -1632,10 +1722,17 @@ async function main() {
    * question — a phone launch review and a Champions League highlight reel are
    * both on it. Two per channel keeps one prolific uploader from owning it.
    */
-  const trending = spreadBySource(
+  let trending = spreadBySource(
     rankedVideos.filter((video) => video.onBoard),
     2
   ).slice(0, YOUTUBE_LIMIT)
+
+  if (!trending.length) {
+    trending = carryVideos(previous.get(VIDEO_TOPIC)?.articles, videoCutoff, YOUTUBE_LIMIT)
+    if (trending.length) {
+      console.log(`  YouTube gave nothing this run — holding ${trending.length} from the last`)
+    }
+  }
 
   // ---- 3. Enrich --------------------------------------------------------
 
@@ -1763,6 +1860,7 @@ async function main() {
     `\n  ${everything.length} stories and ${shownVideos.length} videos written to public/data` +
       ` in ${seconds}s`
   )
+  if (carried) console.log(`  ${carried} video(s) held over from the previous edition`)
   const bare = kept.filter((a) => !a.image).length
   if (bare) console.log(`  ${bare} story(ies) still have no artwork of any kind.`)
   if (failures.length) {
