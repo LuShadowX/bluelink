@@ -1697,6 +1697,14 @@ async function main() {
   for (const video of rankedVideos) {
     videosByTopic.get(video.topic)?.push(video)
   }
+  /*
+   * Fresh first, then topped up from the previous edition.
+   *
+   * Not "carry only when the pull is empty": a throttled run usually returns a
+   * few channels rather than none, and replacing eight held videos with the two
+   * that happened to answer is a downgrade dressed up as an update. Topping up
+   * means a rail can only get better.
+   */
   let carried = 0
   for (const topic of topicNames) {
     const fresh = capBySource(
@@ -1707,13 +1715,10 @@ async function main() {
       (v) => v.source
     ).slice(0, VIDEOS_PER_TOPIC)
 
-    if (fresh.length) {
-      videosByTopic.set(topic, fresh)
-      continue
-    }
     const held = carryVideos(previous.get(topic)?.videos, videoCutoff, VIDEOS_PER_TOPIC)
-    carried += held.length
-    videosByTopic.set(topic, held)
+    const merged = dedupe([...fresh, ...held]).slice(0, VIDEOS_PER_TOPIC)
+    carried += merged.length - fresh.length
+    videosByTopic.set(topic, merged)
   }
 
   /*
@@ -1727,11 +1732,13 @@ async function main() {
     2
   ).slice(0, YOUTUBE_LIMIT)
 
-  if (!trending.length) {
-    trending = carryVideos(previous.get(VIDEO_TOPIC)?.articles, videoCutoff, YOUTUBE_LIMIT)
-    if (trending.length) {
-      console.log(`  YouTube gave nothing this run — holding ${trending.length} from the last`)
-    }
+  const heldBoard = carryVideos(previous.get(VIDEO_TOPIC)?.articles, videoCutoff, YOUTUBE_LIMIT)
+  const boardBefore = trending.length
+  trending = dedupe([...trending, ...heldBoard]).slice(0, YOUTUBE_LIMIT)
+  if (trending.length > boardBefore) {
+    console.log(
+      `  board: ${boardBefore} fresh, topped up to ${trending.length} from the last edition`
+    )
   }
 
   // ---- 3. Enrich --------------------------------------------------------
