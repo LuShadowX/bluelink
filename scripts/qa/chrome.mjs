@@ -34,6 +34,11 @@ for (const theme of ['light', 'dark']) {
   await page.keyboard.press('Escape')
   await page.waitForTimeout(600)
 
+  // The about page, which the menu now routes to in-app rather than to GitHub.
+  await page.goto(`${BASE_URL}#/about`, { waitUntil: 'load' })
+  await page.waitForTimeout(2200)
+  await page.screenshot({ path: resolve(OUT_DIR, `about-${theme}.png`) })
+
   // The reader, at the topic row.
   await page.goto(`${BASE_URL}#/tech`, { waitUntil: 'load' })
   await page.waitForTimeout(3500)
@@ -41,7 +46,9 @@ for (const theme of ['light', 'dark']) {
   await page.waitForTimeout(1300)
   await page.screenshot({ path: resolve(OUT_DIR, `reader-${theme}.png`) })
 
-  console.log(`  ${theme}: theme-${theme}.png, menu-${theme}.png, reader-${theme}.png`)
+  console.log(
+    `  ${theme}: theme-${theme}.png, menu-${theme}.png, about-${theme}.png, reader-${theme}.png`
+  )
   await ctx.close()
 }
 

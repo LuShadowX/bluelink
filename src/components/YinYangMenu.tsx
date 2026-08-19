@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { openExternal } from '../lib/feed'
+import type { Route } from '../lib/useRoute'
 import { ArrowUpRightIcon } from './icons'
 
 interface Link {
   label: string
   note: string
-  href: string
+  /** An external destination. Omitted for the in-app page. */
+  href?: string
+  /** An in-app route, which opens here rather than in a new tab. */
+  to?: Route
 }
 
 /**
@@ -16,8 +20,8 @@ interface Link {
 const LINKS: readonly Link[] = [
   {
     label: 'About the author',
-    note: 'Shadow_Lu on GitHub',
-    href: 'https://github.com/LuShadowX',
+    note: "Who's behind BlueLink",
+    to: { view: 'about' },
   },
   {
     label: 'Portfolio',
@@ -31,13 +35,16 @@ const LINKS: readonly Link[] = [
   },
   {
     label: 'Lua — anime chatbot',
-    note: 'github.com/LuShadowX/lua-anime-chatbot',
-    href: 'https://github.com/LuShadowX/lua-anime-chatbot',
+    // The live interface, not the repository. Both bots are on Render's free
+    // tier, which sleeps: the first request can take most of a minute to wake,
+    // and saying so beats leaving someone staring at a blank tab.
+    note: 'Talk to Lua · takes a moment to wake',
+    href: 'https://lua-anime-chatbot.onrender.com',
   },
   {
     label: 'Nova — novel bot',
-    note: 'github.com/LuShadowX/nova-novel-bot',
-    href: 'https://github.com/LuShadowX/nova-novel-bot',
+    note: 'Talk to Nova · takes a moment to wake',
+    href: 'https://nova-novel-bot.onrender.com',
   },
 ]
 
@@ -64,7 +71,11 @@ function YinYang() {
   )
 }
 
-export function YinYangMenu() {
+interface MenuProps {
+  navigate: (route: Route) => void
+}
+
+export function YinYangMenu({ navigate }: MenuProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -115,18 +126,20 @@ export function YinYangMenu() {
           <p className="yy__title">Elsewhere</p>
           {LINKS.map((link) => (
             <a
-              key={link.href}
+              key={link.label}
               className="yy__item"
               role="menuitem"
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={link.href ?? '#/about'}
+              // Only the outward links get a new tab; the in-app page must not.
+              target={link.href ? '_blank' : undefined}
+              rel={link.href ? 'noopener noreferrer' : undefined}
               onClick={(event) => {
                 if (event.metaKey || event.ctrlKey || event.shiftKey) return
+                event.preventDefault()
+                if (link.to) navigate(link.to)
                 // Inside a native shell target="_blank" navigates the app's own
                 // WebView and leaves no way back.
-                event.preventDefault()
-                openExternal(link.href)
+                else if (link.href) openExternal(link.href)
                 close()
               }}
             >

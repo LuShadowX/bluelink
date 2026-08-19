@@ -7,7 +7,7 @@ import { useTheme } from './lib/useTheme'
 import { useSaved } from './lib/useSaved'
 import { usePullToRefresh } from './lib/usePullToRefresh'
 import { PullIndicator } from './components/PullIndicator'
-import { XBackdrop } from './components/XBackdrop'
+import { ParticleField } from './components/ParticleField'
 import { Masthead } from './components/Masthead'
 import { Ticker } from './components/Ticker'
 import { Footer } from './components/Footer'
@@ -16,6 +16,7 @@ import { SearchOverlay } from './components/SearchOverlay'
 import { FrontPage } from './pages/FrontPage'
 import { TopicPage } from './pages/TopicPage'
 import { SavedPage } from './pages/SavedPage'
+import { AboutPage } from './pages/AboutPage'
 import { RefreshIcon } from './components/icons'
 
 function BlueLink() {
@@ -122,7 +123,7 @@ function BlueLink() {
   if (status === 'error') {
     return (
       <>
-        <XBackdrop />
+        <ParticleField />
         <div className="page shell">
           <div className="state" style={{ marginTop: 'var(--sp-8)' }}>
             <h1 className="state__title">Today's edition didn't arrive</h1>
@@ -142,7 +143,7 @@ function BlueLink() {
 
   return (
     <>
-      <XBackdrop />
+      <ParticleField />
 
       <PullIndicator {...pull} />
 
@@ -190,6 +191,8 @@ function BlueLink() {
           onToggleSave={toggle}
         />
       )}
+
+      {route.view === 'about' && <AboutPage navigate={navigate} />}
 
       {route.view === 'saved' && (
         <SavedPage

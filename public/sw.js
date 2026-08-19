@@ -16,7 +16,7 @@
  *                                    never allowed to eat unbounded storage
  */
 
-const VERSION = 'bluelink-v3'
+const VERSION = 'bluelink-v4'
 const SHELL_CACHE = `${VERSION}-shell`
 const DATA_CACHE = `${VERSION}-data`
 const IMAGE_CACHE = `${VERSION}-images`
@@ -31,6 +31,7 @@ const PRECACHE = [
   './manifest.webmanifest',
   './favicon-64.png',
   './mark.png',
+  './portrait.jpg',
   './apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

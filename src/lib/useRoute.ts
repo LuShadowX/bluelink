@@ -5,6 +5,7 @@ export type Route =
   | { view: 'home' }
   | { view: 'topic'; topic: TopicId }
   | { view: 'saved' }
+  | { view: 'about' }
 
 /**
  * Hash routing rather than a router dependency and history API. It costs
@@ -14,6 +15,7 @@ export type Route =
 function parse(hash: string): Route {
   const slug = hash.replace(/^#\/?/, '').split('?')[0]?.trim().toLowerCase() ?? ''
   if (slug === 'saved') return { view: 'saved' }
+  if (slug === 'about') return { view: 'about' }
   if (isTopicId(slug)) return { view: 'topic', topic: slug }
   return { view: 'home' }
 }
@@ -29,7 +31,13 @@ export function useRoute() {
 
   const navigate = useCallback((to: Route) => {
     const hash =
-      to.view === 'home' ? '#/' : to.view === 'saved' ? '#/saved' : `#/${to.topic}`
+      to.view === 'home'
+        ? '#/'
+        : to.view === 'saved'
+          ? '#/saved'
+          : to.view === 'about'
+            ? '#/about'
+            : `#/${to.topic}`
     if (window.location.hash === hash) {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return

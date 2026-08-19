@@ -50,119 +50,58 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
- * The X field
+ * The field
  *
- * A fixed, non-interactive layer that everything else floats over: two tiled
- * fields of outlined X marks drifting diagonally at different rates, and one
- * huge mark turning slowly behind them. The marks are traced in coral-red
- * hairlines on white, so what shows in the gutters between cards is line work
- * rather than a wash of colour.
- *
- * Every layer animates transform only. That keeps the whole field on the
- * compositor — no layout, no paint, no repeated background-position arithmetic —
- * which is what makes the drift smooth on a phone. Each layer travels exactly
- * one tile period, so the loop point is invisible.
+ * A drifting constellation, ported from the author's portfolio so the two sites
+ * read as the same hand: electric-blue particles, neon-purple links between them
+ * and to the cursor, over a ghost-lavender ground. Drawn in canvas rather than
+ * CSS because the links have to be recomputed every frame — see
+ * components/ParticleField.tsx.
  *
  * z-index: -1, not 0. A fixed element with z-index 0 is still a *positioned*
  * element, and CSS paints every positioned box after all the in-flow static
- * ones — at 0 this opaque layer covered the footer while leaving the cards
- * visible, because cards are position: relative and later in tree order.
+ * ones — at 0 this layer covered the footer while leaving the cards visible,
+ * because cards are position: relative and later in tree order.
  * ------------------------------------------------------------------------- */
 
-.xfield {
+.pfield {
   position: fixed;
   inset: 0;
   z-index: -1;
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   background: var(--page);
 }
 
 /*
- * Oversized well past the viewport on every side, so a layer mid-travel never
- * exposes its own edge.
+ * Grain and scanlines. Both sit above the content — that is what makes them read
+ * as a surface over the whole page rather than a texture behind it — and both are
+ * at an opacity where you would have to go looking to find them.
  */
-.xfield__grid {
-  position: absolute;
-  top: -60%;
-  left: -60%;
-  width: 220%;
-  height: 220%;
-  background-repeat: repeat;
-  will-change: transform;
+.pgrain,
+.pscan {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
 }
 
-.xfield__grid--red {
-  background-image: var(--xtile);
-  background-size: 420px 420px;
-  opacity: 0.5;
-  animation: x-drift-red 64s linear infinite;
+.pgrain {
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* A second pass in graphite, larger and slower: two rates read as depth, one
-   rate reads as a moving wallpaper. */
-.xfield__grid--ink {
-  background-image: var(--xtile-ink);
-  background-size: 620px 620px;
-  opacity: 0.1;
-  animation: x-drift-ink 132s linear infinite reverse;
-}
-
-@keyframes x-drift-red {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(420px, 420px, 0);
-  }
-}
-
-@keyframes x-drift-ink {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(620px, 620px, 0);
-  }
-}
-
-/* The hero mark: one enormous outlined X, turning slowly. */
-.xfield__mark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(130vh, 122vw);
-  height: min(130vh, 122vw);
-  margin: calc(min(130vh, 122vw) / -2) 0 0 calc(min(130vh, 122vw) / -2);
-  opacity: 0.16;
-  animation: x-turn 150s linear infinite;
-  will-change: transform;
-}
-
-.xfield__mark path {
-  fill: none;
-  stroke: var(--x-line);
-  stroke-width: 0.5;
-}
-
-@keyframes x-turn {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* On a phone the field is mostly hidden behind full-width cards, so it drops to
-   the red pass alone — one animated layer instead of three. */
-@media (max-width: 700px) {
-  .xfield__grid--ink {
-    display: none;
-  }
-  .xfield__mark {
-    opacity: 0.12;
-  }
+.pscan {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.01) 50%,
+    rgba(0, 0, 0, 0.01)
+  );
+  background-size: 100% 4px;
 }
 
 /* ---------------------------------------------------------------------------

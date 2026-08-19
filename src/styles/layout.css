@@ -1027,6 +1027,21 @@
   white-space: nowrap;
 }
 
+/*
+ * On a phone the button is nowhere near the right edge of the bar, so anchoring
+ * the panel to the button pushed a 310px card off the left of the screen and cut
+ * the labels in half. Below this width it is pinned to the viewport instead.
+ */
+@media (max-width: 720px) {
+  .yy__panel {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 22px);
+    left: max(var(--shell-pad), env(safe-area-inset-left, 0px));
+    right: max(var(--shell-pad), env(safe-area-inset-right, 0px));
+    width: auto;
+  }
+}
+
 /* ---- Day and night ---- */
 
 /* The icon is replaced rather than transformed, so it arrives with a small turn
@@ -1061,5 +1076,162 @@
 
   .freshness {
     padding: 7px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * About
+ *
+ * One cel holding a portrait and a column of type. The portrait is given a
+ * fixed aspect and object-fit rather than its natural ratio, so replacing the
+ * image later — which the author intends to — cannot reflow the page.
+ * ------------------------------------------------------------------------- */
+
+.about {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 0;
+  margin-top: var(--sp-5);
+  background: var(--panel);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift);
+  overflow: hidden;
+}
+
+.about__portrait {
+  position: relative;
+  margin: 0;
+  border-right: var(--line) solid var(--ink);
+  background-color: var(--accent);
+  background-image: var(--halftone);
+  background-size: 13px 13px;
+}
+
+.about__portrait img {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  object-fit: cover;
+  object-position: 50% 22%;
+}
+
+.about__body {
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.about__kicker span {
+  display: inline-block;
+  padding: 4px 10px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-mono);
+  font-size: var(--step-meta);
+  font-weight: 700;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.about__name {
+  font-size: var(--step-display-l);
+  text-transform: uppercase;
+}
+
+.about__role {
+  font-family: var(--font-mono);
+  font-size: var(--step-small);
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+.about__text {
+  font-size: 1.0625rem;
+  line-height: 1.68;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.about__quote {
+  margin: var(--sp-2) 0;
+  padding: var(--sp-4) var(--sp-5);
+  border: var(--line-hair) solid var(--ink);
+  border-left: 6px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--panel-sunken);
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.about__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.about__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: var(--line-hair) solid var(--ink);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.about__link:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--lift-xs);
+}
+
+.about__link-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.about__link-note {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.about__link svg {
+  color: var(--accent);
+}
+
+.about .button {
+  align-self: flex-start;
+  margin-top: var(--sp-2);
+}
+
+@media (max-width: 860px) {
+  .about {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .about__portrait {
+    border-right: 0;
+    border-bottom: var(--line) solid var(--ink);
+  }
+
+  .about__portrait img {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+    object-position: 50% 18%;
+  }
+
+  .about__body {
+    padding: var(--sp-5);
   }
 }

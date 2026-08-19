@@ -111,7 +111,7 @@ export function Masthead({
         </nav>
 
         <div className="masthead__tools">
-          <YinYangMenu />
+          <YinYangMenu navigate={navigate} />
 
           <button
             type="button"
